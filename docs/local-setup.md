@@ -159,7 +159,7 @@ cd web
 npm run dev -- --port 5173 --strictPort
 ```
 
-`Local: http://localhost:5173/`가 표시되면 브라우저에서 **[http://localhost:5173](http://localhost:5173)**을 엽니다. 백엔드가 켜져 있어야 로그인 이후 기능이 작동합니다. `--strictPort`는 포트가 사용 중이면 다른 주소로 바꾸지 않고 오류를 표시하도록 합니다.
+`Local: http://localhost:5173/`가 표시되면 브라우저에서 **[http://localhost:5173](http://localhost:5173)**을 엽니다. 백엔드가 켜져 있어야 로그인 이후 기능이 작동합니다. `--strictPort`는 포트가 사용 중이면 다른 주소로 바꾸지 않고 오류를 표시하도록 합니다. 같은 Wi-Fi의 휴대폰·다른 PC에서는 터미널에 함께 나오는 `Network:` 주소로 화면을 볼 수 있습니다. 다만 사진 업로드는 `localhost` 주소에서만 됩니다(S3 업로드 허용 주소).
 
 ### 각자 워커를 실행하는 기준
 

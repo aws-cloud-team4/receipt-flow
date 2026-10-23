@@ -42,7 +42,7 @@ def find(session: boto3.Session, region: str) -> dict[str, str]:
                 f"{what}을(를) 찾지 못했어요. "
                 "infra/terraform/base가 이 계정·리전에 만들어져 있는지 확인해 주세요."
             )
-        print(f"  ✓ {what}: {value}")
+        print(f"  [ok] {what}: {value}")
         return value
 
     session.client("dynamodb", region_name=region).describe_table(TableName=NAME)
@@ -101,7 +101,7 @@ def write(path: Path, text: str, force: bool) -> None:
             return
         shutil.copyfile(path, path.with_name(path.name + ".bak"))
     path.write_text(text, encoding="utf-8", newline="\n")
-    print(f"  ✓ {path.relative_to(ROOT)} 저장")
+    print(f"  [ok] {path.relative_to(ROOT)} 저장")
 
 
 def main() -> None:
