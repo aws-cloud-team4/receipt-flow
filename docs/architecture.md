@@ -180,7 +180,7 @@ deploy/                    ④ k8s 매니페스트(kustomize), k8s-scaling(KEDA)
 
 0. **사용자 전체 흐름 검증**: 실제 Cognito 직원·검수 계정으로 휴대폰 촬영 → AI → 사람이 제출 → 사람이 승인하는 전체 흐름은 미검증입니다. 발표 전 확인해야 합니다.
 
-1. **팀 저장소 마무리**: 저장소는 [aws-cloud-team4/receipt-flow](https://github.com/aws-cloud-team4/receipt-flow)(공개, 이력 없이 시작)로 옮겼고 `main` 보호·squash 머지·CODEOWNERS가 켜져 있습니다. 남은 것: IAM 관리자가 `admin` 스택에 `-var github_repo=aws-cloud-team4/receipt-flow`로 apply → 출력 `github_deploy_role_arn`을 저장소 Secret `AWS_DEPLOY_ROLE_ARN`에 등록(자동 배포), 팀원 메일을 비용 보고에 추가, `state` 스택 상태 파일과 `ops/terraform.tfvars`(받는 메일)는 지금 IAM 관리자 PC 한 곳에만 있으므로 백업·공유 위치 정하기
+1. **팀 저장소 마무리**: 저장소는 [aws-cloud-team4/receipt-flow](https://github.com/aws-cloud-team4/receipt-flow)(공개, 이력 없이 시작)로 옮겼고 `main` 보호(직접 푸시 금지, CI 7개 필수, 필수 승인 0명 — 다른 영역 파일을 바꾼 PR의 담당자 승인은 AGENTS.md 규칙)·squash 머지·CODEOWNERS 자동 리뷰 요청이 켜져 있습니다. 남은 것: IAM 관리자가 `admin` 스택에 `-var github_repo=aws-cloud-team4/receipt-flow`로 apply → 출력 `github_deploy_role_arn`을 저장소 Secret `AWS_DEPLOY_ROLE_ARN`에 등록(자동 배포), 팀원 메일을 비용 보고에 추가, `state` 스택 상태 파일과 `ops/terraform.tfvars`(받는 메일)는 지금 IAM 관리자 PC 한 곳에만 있으므로 백업·공유 위치 정하기
 2. **AI 품질**: 대화 평가 세트(시나리오 자동 실행), 합성 영수증 평가의 양식·촬영 조건 확대(기획서 목표: 핵심 필드 90%, 최대 100장)
 3. **화면**: ⓘ 도움말을 화면별 주제로, 검수 상세(진행 표시·단축키·검토 포인트↔칸 강조·승인 되돌리기), 빠른 검색 `Alt+S`
 4. **다듬기**: 사업자번호 체크섬, 오래된 영수증 경고, 다른 직원과의 같은 승인번호(인덱스 필요)
