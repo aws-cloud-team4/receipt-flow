@@ -77,8 +77,8 @@ export default function Landing() {
             <a href="#how">사용 방법</a>
             <a href="#roles">직원·담당자</a>
             <a href="#stack">아키텍처</a>
-            <a href="#cost">AWS 비용</a>
             <a href="#team">팀</a>
+            <a href="#cost">AWS 비용</a>
           </nav>
           <span className="lp-spacer" />
           <Link to="/login" className="lp-signin">로그인</Link>
@@ -146,9 +146,9 @@ export default function Landing() {
           <div className="reveal"><Architecture /></div>
         </section>
 
-        <UsageSection />
-
         <TeamSection />
+
+        <UsageSection />
       </main>
 
       <section className="lp-band">
