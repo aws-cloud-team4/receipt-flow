@@ -7,7 +7,7 @@ import { Icon } from "./Icons";
 const REPO = "https://github.com/aws-cloud-team4/receipt-flow";
 
 type Member = {
-  n: string;
+  lead?: boolean;
   name: string;
   github: string;
   area: string;
@@ -18,19 +18,19 @@ type Member = {
 
 const MEMBERS: Member[] = [
   {
-    n: "01", name: "장차희", github: "CHAHEE03", area: "웹 화면·사용자 흐름", tone: "web", paths: "web/",
+    lead: true, name: "장차희", github: "CHAHEE03", area: "웹 화면·사용자 흐름", tone: "web", paths: "web/",
     work: ["직원·검수·관리자 화면", "촬영·테두리 보정 흐름", "AI 어시스턴트 대화 화면"],
   },
   {
-    n: "02", name: "김태희", github: "igwi292", area: "AI·데이터 처리", tone: "ai", paths: "ocr-worker · chat · preprocess",
+    name: "김태희", github: "igwi292", area: "AI·데이터 처리", tone: "ai", paths: "ocr-worker · chat · preprocess",
     work: ["Bedrock 영수증 추출", "AI 어시스턴트 도구·응답 검사", "사진 보정·모델 평가"],
   },
   {
-    n: "03", name: "김수빈", github: "bb2002", area: "백엔드·DB", tone: "api", paths: "api-service · common",
+    name: "김수빈", github: "bb2002", area: "백엔드·DB", tone: "api", paths: "api-service · common",
     work: ["증빙·검수 API와 권한", "상태 전환·처리 이력", "DynamoDB 단일 테이블 설계"],
   },
   {
-    n: "04", name: "박준영", github: "nemm3623", area: "AWS·배포", tone: "infra", paths: "infra · deploy · .github",
+    name: "박준영", github: "nemm3623", area: "AWS·배포", tone: "infra", paths: "infra · deploy · .github",
     work: ["Terraform 인프라", "EKS 배포·자동 확장", "CI/CD·비용 알림"],
   },
 ];
@@ -67,10 +67,10 @@ export default function TeamSection() {
         {MEMBERS.map((m, i) => (
           <a key={m.github} className={`lp-member ${m.tone} reveal`} style={{ transitionDelay: `${i * 80}ms` }}
             href={`https://github.com/${m.github}`} target="_blank" rel="noreferrer"
-            aria-label={`${m.name} — ${m.area}, GitHub 프로필 열기`}>
+            aria-label={`${m.lead ? "조장" : "팀원"} ${m.name} — ${m.area}, GitHub 프로필 열기`}>
             <div className="lp-member-top">
               <Avatar m={m} />
-              <span className="lp-member-n">{m.n}</span>
+              <span className={`lp-member-role${m.lead ? " lead" : ""}`}>{m.lead ? "조장" : "팀원"}</span>
             </div>
             <span className="lp-member-area">{m.area}</span>
             <h3>{m.name}</h3>
