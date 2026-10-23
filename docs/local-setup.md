@@ -177,6 +177,32 @@ aws sts get-caller-identity --profile team-admin
 
 AWS 세션이 만료됐으면 `aws login --profile team-admin`을 다시 실행하고 5단계대로 서버를 켭니다. 환경 파일은 매일 새로 만들지 않아도 됩니다. 작업 후 담당 영역 검사 → 커밋·Push → PR → 다른 영역 담당 리뷰 → CI 통과 → squash 머지 순서를 따릅니다.
 
+### 작업을 PR로 올리기
+
+`main`은 보호되어 있어 직접 푸시할 수 없습니다. 작은 수정도 브랜치 → PR → 리뷰 → 머지를 거칩니다. 규칙은 [AGENTS.md](../AGENTS.md#협업-진행)에 있습니다.
+
+1. 담당 영역 검사를 통과시킵니다(웹: `cd web && node --test tests/*.test.mjs && npm run build`, 백엔드: `cd services && uv run ruff format --check . && uv run ruff check . && uv run pytest`).
+2. 커밋하고 팀 저장소에 올립니다. 커밋 메시지 접두사는 `[web]`·`[ai]`·`[api]`·`[infra]`·`[docs]`입니다. 이때 팀 저장소에 브랜치가 생기지만 PR은 아직 없습니다.
+
+```bash
+git add -A
+git commit -m "[web] 제출 버튼 문구 수정"
+git push -u origin web/submit-button-text
+```
+
+3. PR을 엽니다. GitHub 저장소 화면 위쪽의 **Compare & pull request**를 누르고(GitHub CLI를 설치했다면 `gh pr create --base main --fill`도 됨), PR 템플릿 항목(요약·영역·검사 결과·화면 확인·AWS 영향·워커 재시작)을 채웁니다.
+4. CI 7개가 자동으로 돌고, `.github/CODEOWNERS`에 따라 담당자에게 리뷰가 요청됩니다. 수정 요청을 받으면 **같은 브랜치**에서 고쳐 다시 푸시합니다(같은 PR에 추가됨, 새 PR 금지).
+5. CI 통과와 승인 1명이 되면 작성자가 PR 화면에서 **Squash and merge**를 누릅니다. 팀 저장소의 브랜치는 자동으로 지워집니다.
+6. 내 PC를 최신 `main`으로 맞추고 끝난 브랜치를 지웁니다.
+
+```bash
+git switch main
+git pull --ff-only origin main
+git branch -d web/submit-button-text
+```
+
+혼자 오래 걸리는 큰 작업은 `<GitHub아이디>/dev` 브랜치를 쓰며, 작업을 시작할 때마다 `git fetch origin && git merge origin/main`으로 팀 변경을 섞습니다(AGENTS.md "개인 큰 작업은 dev").
+
 ## 8. 종료·재시작
 
 각 서버 터미널에서 **Ctrl+C**를 누릅니다. 가능하면 진행 중 분석이 끝난 뒤 워커를 종료합니다. 마지막 워커를 끄면 팀에 분석이 대기하게 됨을 알립니다. 서버 코드를 수정하거나 환경 파일을 변경했으면 해당 서버를 종료한 뒤 같은 명령으로 다시 켭니다. 웹 소스 변경은 개발 서버가 보통 자동 반영하지만 환경 파일 변경은 재시작이 필요합니다.
