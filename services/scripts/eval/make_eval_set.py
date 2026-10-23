@@ -13,7 +13,13 @@ from pathlib import Path
 from PIL import Image, ImageDraw, ImageEnhance, ImageFilter, ImageFont
 
 OUT = Path(__file__).with_name("set")
-FONT = "C:/Windows/Fonts/malgun.ttf" if Path("C:/Windows/Fonts/malgun.ttf").exists() else "NanumGothic.ttf"
+# Korean font: Windows 맑은 고딕, macOS Apple SD 산돌고딕, Linux 나눔고딕, else NanumGothic.ttf here.
+FONTS = (
+    "C:/Windows/Fonts/malgun.ttf",
+    "/System/Library/Fonts/AppleSDGothicNeo.ttc",
+    "/usr/share/fonts/truetype/nanum/NanumGothic.ttf",
+)
+FONT = next((f for f in FONTS if Path(f).exists()), "NanumGothic.ttf")
 
 SHOPS = [
     ("한빛 김밥천국 역삼점", "214-86-12345", ["참치김밥", "라볶이", "돈까스", "쫄면"]),

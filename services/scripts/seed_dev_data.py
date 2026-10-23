@@ -24,7 +24,13 @@ from receiptflow_common.domain import AI_FIELDS, CATEGORIES, duplicate_key, run_
 from receiptflow_common.org import KST
 from receiptflow_common.store import _ddb, _pk
 
-FONT = "C:/Windows/Fonts/malgun.ttf" if Path("C:/Windows/Fonts/malgun.ttf").exists() else "NanumGothic.ttf"
+# Korean font: Windows 맑은 고딕, macOS Apple SD 산돌고딕, Linux 나눔고딕, else NanumGothic.ttf here.
+FONTS = (
+    "C:/Windows/Fonts/malgun.ttf",
+    "/System/Library/Fonts/AppleSDGothicNeo.ttc",
+    "/usr/share/fonts/truetype/nanum/NanumGothic.ttf",
+)
+FONT = next((f for f in FONTS if Path(f).exists()), "NanumGothic.ttf")
 rng = random.Random(20261017)
 
 # (category, shop, items with prices, purpose)

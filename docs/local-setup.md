@@ -1,8 +1,12 @@
-# 로컬 개발 시작하기 (Windows·Git Bash)
+# 로컬 개발 시작하기 (Windows·Git Bash / macOS)
 
 처음 저장소를 받은 팀원이 도구 설치 → AWS 로그인 → 환경 파일 생성 → 서버 실행 → 웹 접속까지 따라가는 안내입니다. 일반 로컬 개발은 Docker·Terraform·EKS 없이 실행합니다. DB를 PC에 설치하지 않으며, 팀 공용 **DynamoDB·S3·SQS·Cognito·Bedrock**을 사용합니다.
 
+**Mac 사용자:** 1단계 도구 설치만 아래 [macOS](#macos) 절을 따르고, 2단계부터는 같습니다. 이 문서의 `bash` 명령은 Mac 기본 **터미널**(zsh)에서 그대로 실행합니다. "Git Bash"라고 적힌 곳은 Mac에서는 터미널로 읽으면 됩니다.
+
 ## 1. 처음 한 번: 도구 설치
+
+### Windows
 
 | 도구 | 설치·확인 |
 |---|---|
@@ -30,6 +34,35 @@ uv python install 3.13
 ```
 
 각 명령이 버전을 출력하고 Python 설치가 완료되면 다음으로 진행합니다. `command not found`면 설치 및 PATH를 확인하고 Git Bash를 다시 엽니다. Python을 별도로 활성화할 필요는 없으며 이후 `uv run`이 프로젝트 가상환경을 사용합니다.
+
+### macOS
+
+[Homebrew](https://brew.sh)를 먼저 설치한 뒤 **터미널**에서 실행합니다. 개발자 도구(git)·Node.js 22·AWS CLI v2·uv·Python 3.13을 설치합니다.
+
+```bash
+xcode-select --install
+brew install node@22 awscli
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+`node@22`는 Homebrew가 PATH에 자동으로 넣지 않으므로 한 번 추가합니다(Intel Mac은 `/opt/homebrew` 대신 `/usr/local`).
+
+```bash
+echo 'export PATH="/opt/homebrew/opt/node@22/bin:$PATH"' >> ~/.zshrc
+```
+
+터미널을 닫았다가 새로 연 뒤 Windows와 같은 확인 명령을 실행합니다.
+
+```bash
+git --version
+node --version
+npm --version
+uv --version
+aws --version
+uv python install 3.13
+```
+
+`node --version`이 `v22.`로 시작하고 `aws --version`이 `aws-cli/2.`로 시작하면 됩니다. 합성 영수증 스크립트는 Mac 기본 한글 글꼴(Apple SD 산돌고딕)을 자동으로 사용합니다. 배포하는 사람만 Docker Desktop for Mac, kubectl, helm(`brew install kubectl helm`)을 추가로 설치합니다.
 
 ## 2. 처음 한 번: 저장소 받기
 
@@ -227,7 +260,7 @@ git branch -d web/submit-button-text
 | 보정 후 분석이 계속 대기함 | 내 워커의 시작 로그·AWS 세션·큐 설정을 확인합니다. 같은 승인 코드·실제 모델 설정으로 워커를 켤 수 있습니다. 다른 워커가 남아 있으면 처리되며 모든 워커가 꺼져 있으면 대기합니다. [점검 방법](worker.md#분석이-대기하거나-실패할-때) 참고. |
 | 브라우저 API 오류·서버 오류 | 오류 시각, 서비스 이름, 오류 문구를 담당자에게 전달합니다. 사진·비밀번호·토큰·환경 파일 전체를 공유하지 않습니다. |
 
-아래 명령만 **PowerShell**에서 실행하면 포트와 PID를 확인할 수 있습니다.
+Mac에서는 터미널에서 `lsof -nP -iTCP -sTCP:LISTEN | grep -E ':(5173|8000|8001|8002) '`로 포트를 쓰는 프로세스와 PID를 확인합니다. Windows는 아래 명령만 **PowerShell**에서 실행하면 포트와 PID를 확인할 수 있습니다.
 
 ```powershell
 Get-NetTCPConnection -State Listen -LocalPort 5173,8000,8001,8002 -ErrorAction SilentlyContinue |

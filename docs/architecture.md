@@ -9,7 +9,7 @@ AWS 클라우드 AI 부트캠프 4인 팀 프로젝트이고, 발표일은 2026-
 | 문서 | 내용 | 누가 먼저 읽나 |
 |---|---|---|
 | [AGENTS.md](../AGENTS.md) | **개발 지침**: 건드리면 안 되는 것, 서비스 결정, 담당 영역, 브랜치·PR·검사, AWS 규칙 | 모두 (사람·AI) |
-| [docs/local-setup.md](local-setup.md) | Windows 최초 설치·환경 설정·터미널별 서버 실행·웹 로그인·매일 작업·오류 해결 | 처음 받는 팀원 |
+| [docs/local-setup.md](local-setup.md) | Windows·Mac 최초 설치·환경 설정·터미널별 서버 실행·웹 로그인·매일 작업·오류 해결 | 처음 받는 팀원 |
 | [docs/worker.md](worker.md) | 각자 실행하는 OCR 워커(공용 큐)의 실행 조건·동일 코드와 모델 확인·OCR 수정·테스트 분리 | 모두, 특히 ② AI |
 | **docs/architecture.md** (이 문서) | 전체 그림, 요청 흐름, 폴더 지도, 현재 구현 상태, 남은 일 | 모두 |
 | [docs/contract.md](contract.md) | **API·필드·상태·이벤트 규약** (서비스 사이의 약속) | 모두 — 바꿀 땐 관련 담당자 모두 리뷰 |
