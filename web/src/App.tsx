@@ -59,6 +59,7 @@ export default function App() {
     return (
       <Routes>
         <Route path="/" element={<Landing />} />
+        <Route path="/about" element={<Landing />} />
         <Route path="/login" element={<Login onSignedIn={loadMe} />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
@@ -71,7 +72,8 @@ export default function App() {
     navigate("/login");
   };
 
-  return (
+  // every signed-in page except the intro sits in the app shell (top bar, side menu, help)
+  const app = (
     <HelpProvider>
     <Shell me={me} onLogout={logout}>
       <Routes>
@@ -102,5 +104,13 @@ export default function App() {
       </Routes>
     </Shell>
     </HelpProvider>
+  );
+
+  return (
+    <Routes>
+      {/* the intro page, full screen and outside the app shell; it offers a way back home */}
+      <Route path="/about" element={<Landing me={me} />} />
+      <Route path="/*" element={app} />
+    </Routes>
   );
 }

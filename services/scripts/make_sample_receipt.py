@@ -8,7 +8,13 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
 
-FONT = "C:/Windows/Fonts/malgun.ttf" if Path("C:/Windows/Fonts/malgun.ttf").exists() else "NanumGothic.ttf"
+# Korean font: Windows 맑은 고딕, macOS Apple SD 산돌고딕, Linux 나눔고딕, else NanumGothic.ttf here.
+FONTS = (
+    "C:/Windows/Fonts/malgun.ttf",
+    "/System/Library/Fonts/AppleSDGothicNeo.ttc",
+    "/usr/share/fonts/truetype/nanum/NanumGothic.ttf",
+)
+FONT = next((f for f in FONTS if Path(f).exists()), "NanumGothic.ttf")
 
 LINES = [
     ("center", 34, "한빛 김밥천국 역삼점"),

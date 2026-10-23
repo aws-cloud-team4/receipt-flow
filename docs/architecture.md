@@ -9,8 +9,8 @@ AWS 클라우드 AI 부트캠프 4인 팀 프로젝트이고, 발표일은 2026-
 | 문서 | 내용 | 누가 먼저 읽나 |
 |---|---|---|
 | [AGENTS.md](../AGENTS.md) | **개발 지침**: 건드리면 안 되는 것, 서비스 결정, 담당 영역, 브랜치·PR·검사, AWS 규칙 | 모두 (사람·AI) |
-| [docs/local-setup.md](local-setup.md) | Windows 최초 설치·환경 설정·터미널별 서버 실행·웹 로그인·매일 작업·오류 해결 | 처음 받는 팀원 |
-| [docs/worker.md](worker.md) | 각자 공용 워커 실행 조건·동일 코드와 모델 확인·OCR 수정·테스트 분리 | 모두, 특히 ② AI |
+| [docs/local-setup.md](local-setup.md) | Windows·Mac 최초 설치·환경 설정·터미널별 서버 실행·웹 로그인·매일 작업·오류 해결 | 처음 받는 팀원 |
+| [docs/worker.md](worker.md) | 각자 실행하는 OCR 워커(공용 큐)의 실행 조건·동일 코드와 모델 확인·OCR 수정·테스트 분리 | 모두, 특히 ② AI |
 | **docs/architecture.md** (이 문서) | 전체 그림, 요청 흐름, 폴더 지도, 현재 구현 상태, 남은 일 | 모두 |
 | [docs/contract.md](contract.md) | **API·필드·상태·이벤트 규약** (서비스 사이의 약속) | 모두 — 바꿀 땐 관련 담당자 모두 리뷰 |
 | [docs/ui.md](ui.md) | 웹 화면 구조, 역할별 화면, 컴포넌트, 화면 규칙 | ① 웹 |
@@ -96,6 +96,8 @@ infra/terraform/           ④ 스택 6개 ─ docs/aws.md
   state/ base/ admin/ eks/ edge/ ops/
 deploy/                    ④ k8s 매니페스트(kustomize), k8s-scaling(KEDA), deploy.sh·teardown.sh, local/(컨테이너로 로컬 실행)
 .github/workflows/         ④ ci.yml(필수 검사 4개), deploy.yml(main 머지 → 클러스터 있으면 배포)
+.github/CODEOWNERS         경로별 담당자 자동 리뷰 요청 (AGENTS.md 담당 표와 같음)
+.github/pull_request_template.md  PR 설명 항목
 ```
 
 ## 5. 기술 선택 요약
@@ -162,7 +164,7 @@ deploy/                    ④ k8s 매니페스트(kustomize), k8s-scaling(KEDA)
 ### 공통·운영
 | 항목 | 상태 |
 |---|---|
-| 소개 페이지(로그인 전 `/`) — 상단 메뉴 "AWS 비용" 섹션(팀 사용 금액·남은 금액, 매일 09:00 스냅샷, `GET /api/public/usage`), 아키텍처 그림 가벼운 호버 | ✅ |
+| 소개 페이지(로그인 전 `/`, 로그인 후에도 `/about` — 왼쪽 메뉴·도움말에서 "서비스 소개", 버튼은 "내 홈으로") — "만든 사람들" 섹션(조장·팀원 4명, 영역·GitHub 프로필, 팀 저장소 바로가기), 상단 메뉴 "AWS 비용" 섹션(팀 사용 금액·남은 금액, 매일 09:00 스냅샷, `GET /api/public/usage`), 아키텍처 그림 가벼운 호버 | ✅ |
 | "정보" 도움말 패널, 왼쪽 메뉴·로고 아래 막대, 모든 화면 폭(375~1920px) 점검 | ✅ |
 | 로컬 개발(공유 AWS), 개발자 로그인(테스트 계정 10개, 로컬 전용), 팀원용 `.env` 생성 스크립트, 워커 없이 실행(`WORKER=0`) | ✅ |
 | CI 필수 검사 4개, Terraform 상태 S3, 팀 IAM 금지 정책 | ✅ |
@@ -178,7 +180,7 @@ deploy/                    ④ k8s 매니페스트(kustomize), k8s-scaling(KEDA)
 
 0. **사용자 전체 흐름 검증**: 실제 Cognito 직원·검수 계정으로 휴대폰 촬영 → AI → 사람이 제출 → 사람이 승인하는 전체 흐름은 미검증입니다. 발표 전 확인해야 합니다.
 
-1. **팀 저장소 마무리**: 저장소는 [aws-cloud-team4/receipt-flow](https://github.com/aws-cloud-team4/receipt-flow)(공개, 이력 없이 시작)로 옮겼고 `main` 보호·squash 머지·CODEOWNERS가 켜져 있습니다. 남은 것: IAM 관리자가 `admin` 스택에 `-var github_repo=aws-cloud-team4/receipt-flow`로 apply → 출력 `github_deploy_role_arn`을 저장소 Secret `AWS_DEPLOY_ROLE_ARN`에 등록(자동 배포), 팀원 메일을 비용 보고에 추가, `state` 스택 상태 파일과 `ops/terraform.tfvars`(받는 메일)는 지금 IAM 관리자 PC 한 곳에만 있으므로 백업·공유 위치 정하기
+1. **팀 저장소 마무리**: 저장소는 [aws-cloud-team4/receipt-flow](https://github.com/aws-cloud-team4/receipt-flow)(공개, 이력 없이 시작)로 옮겼고 `main` 보호(직접 푸시 금지, CI 7개 필수, 필수 승인 0명 — 다른 영역 파일을 바꾼 PR의 담당자 승인은 AGENTS.md 규칙)·squash 머지·CODEOWNERS 자동 리뷰 요청이 켜져 있습니다. 남은 것: IAM 관리자가 `admin` 스택에 `-var github_repo=aws-cloud-team4/receipt-flow`로 apply → 출력 `github_deploy_role_arn`을 저장소 Secret `AWS_DEPLOY_ROLE_ARN`에 등록(자동 배포), 팀원 메일을 비용 보고에 추가, `state` 스택 상태 파일과 `ops/terraform.tfvars`(받는 메일)는 지금 IAM 관리자 PC 한 곳에만 있으므로 백업·공유 위치 정하기
 2. **AI 품질**: 대화 평가 세트(시나리오 자동 실행), 합성 영수증 평가의 양식·촬영 조건 확대(기획서 목표: 핵심 필드 90%, 최대 100장)
 3. **화면**: ⓘ 도움말을 화면별 주제로, 검수 상세(진행 표시·단축키·검토 포인트↔칸 강조·승인 되돌리기), 빠른 검색 `Alt+S`
 4. **다듬기**: 사업자번호 체크섬, 오래된 영수증 경고, 다른 직원과의 같은 승인번호(인덱스 필요)

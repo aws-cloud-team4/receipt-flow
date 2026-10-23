@@ -1,4 +1,4 @@
-# 공용 OCR 워커 운영
+# OCR 워커 운영 (각자 실행 · 공용 큐)
 
 워커는 대기열(SQS)에서 사진 분석 작업을 가져와 S3 사진을 읽고, Bedrock AI에 분석을 요청한 뒤 DynamoDB에 결과를 저장하는 백그라운드 프로그램입니다. AI 모델 자체는 Bedrock에 있고, 워커는 분석 요청과 결과 저장을 맡습니다.
 
@@ -34,7 +34,7 @@ RF_CHAT_MODEL=global.anthropic.claude-haiku-5-5
 
 추출 모델은 OCR용 Sonnet, chat 모델은 챗봇용 Haiku입니다. 공용 테이블·버킷·큐도 팀 환경 파일 생성 스크립트가 조회한 값을 사용합니다. 터미널에 별도로 지정한 환경 변수는 `.env`보다 우선할 수 있으므로 실제 읽히는 값도 확인합니다.
 
-프로젝트 루트에서 승인 기준과의 분석 관련 차이를 확인합니다. 차이가 있으면 공용 워커를 켜지 않고 아래 수정 절차를 따릅니다. `origin/main`은 최신 코드를 받은 상태여야 합니다.
+프로젝트 루트에서 승인 기준과의 분석 관련 차이를 확인합니다. 차이가 있으면 워커를 켜지 않고 아래 수정 절차를 따릅니다. `origin/main`은 최신 코드를 받은 상태여야 합니다.
 
 ```bash
 git status --short -- services/ocr-worker services/common services/uv.lock services/pyproject.toml
@@ -60,7 +60,7 @@ uv run python -c 'from receiptflow_common.config import get_settings; s=get_sett
 
 ## OCR·공통 코드나 모델을 수정할 때
 
-1. **공용 워커를 먼저 종료합니다.** 변경 대상·테스트 계획을 팀에 알리고 작업 브랜치에서 수정합니다. 나머지 서비스가 필요하면 `WORKER=0 bash scripts/dev.sh`를 사용합니다.
+1. **내 워커를 먼저 종료합니다.** 변경 대상·테스트 계획을 팀에 알리고 작업 브랜치에서 수정합니다. 나머지 서비스가 필요하면 `WORKER=0 bash scripts/dev.sh`를 사용합니다.
 2. **공용 큐에서 수정 중인 코드나 mock 워커를 실행하지 않습니다.** 사진은 `make_sample_receipt.py`로 만든 합성 이미지만 사용하고, 기본 검증은 아래 moto 테스트로 수행합니다. moto 테스트는 실제 AWS에 쓰지 않습니다.
 3. 실제 Bedrock 검증이 필요하면 공용 큐 소비 없이 합성 평가 스크립트로 추출 함수를 검사합니다. [모델 평가 안내](model-eval.md)를 따르며 실제 모델 비용이 발생합니다. 큐까지 포함한 mock·부하 테스트는 별도 테스트 리소스가 준비된 경우에만 수행합니다. 팀원별 큐 분리는 현재 자동 제공되지 않으며 AWS 리소스가 필요하면 인프라 담당자가 Terraform으로 준비합니다.
 4. API·필드·상태가 바뀌면 먼저 `contract.md`를 합의하고 관련 서비스도 수정합니다. 프롬프트 변경은 `PROMPT_VERSION`을 올리고 최신 평가 수치·조건을 갱신합니다.

@@ -26,7 +26,7 @@
 
 필요: Python 3.13 + [uv](https://docs.astral.sh/uv/), Node 22+, 본인 IAM 사용자로 AWS CLI `team-admin` 프로필 로그인 (팀 공통 프로필 이름, 루트 계정 금지).
 
-Windows에서는 아래 실행 명령을 **Git Bash**에서 실행합니다. 저장소를 받은 각 팀원은 본인 AWS 로그인 후 환경 파일을 생성합니다. `.env`나 AWS 인증정보를 팀원끼리 복사하지 않습니다. AWS 로그인 방법은 [docs/aws.md](docs/aws.md#처음-설정-팀원)를 참고하세요.
+Windows에서는 아래 실행 명령을 **Git Bash**에서, Mac에서는 기본 **터미널**에서 실행합니다. 저장소를 받은 각 팀원은 본인 AWS 로그인 후 환경 파일을 생성합니다. `.env`나 AWS 인증정보를 팀원끼리 복사하지 않습니다. AWS 로그인 방법은 [docs/aws.md](docs/aws.md#처음-설정-팀원)를 참고하세요.
 
 설정 파일 만들기 — 본인 AWS 로그인으로 공유 리소스를 조회만 해서 `services/.env`, `web/.env.local`을 씁니다 (AWS는 바꾸지 않음, 있는 파일은 `--force` 없이는 그대로):
 
@@ -44,7 +44,7 @@ cd services && uv sync --frozen && bash scripts/dev.sh
 cd web && npm install && npm run dev
 ```
 
-위 두 명령은 프로젝트 루트에서 **서로 다른 터미널**로 각자 실행합니다. `dev.sh`는 API·chat·preprocess와 OCR 워커를 함께 켭니다. 워커는 공용 큐의 모든 팀원 사진을 처리하므로 켜도 되는 조건(최신 `main` 코드·실제 Bedrock 설정)과 끄는 경우(`WORKER=0`), 분석이 대기할 때의 점검은 [공용 OCR 워커 운영](docs/worker.md)에 있습니다.
+위 두 명령은 프로젝트 루트에서 **서로 다른 터미널**로 각자 실행합니다. `dev.sh`는 API·chat·preprocess와 OCR 워커를 함께 켭니다. 워커는 공용 큐의 모든 팀원 사진을 처리하므로 켜도 되는 조건(최신 `main` 코드·실제 Bedrock 설정)과 끄는 경우(`WORKER=0`), 분석이 대기할 때의 점검은 [OCR 워커 운영](docs/worker.md)에 있습니다.
 
 로컬 서버도 **공용 DynamoDB·S3·SQS·Cognito**를 사용합니다. 별도 로컬 DB 설치나 EKS 생성은 필요하지 않습니다. 공용 데이터를 바꾸지 않는 검증은 아래 moto 기반 테스트를 사용합니다.
 

@@ -55,7 +55,7 @@ terraform -chdir=infra/terraform/eks destroy -var aws_profile=team-admin -var 'a
 `terraform plan`의 "No changes"는 리소스가 없다는 뜻이 아닙니다. 비용은 AWS Budgets로 봅니다 (Cost Explorer는 조직 정책으로 막혀 있음 — 매주 월요일 비용 메일, 바로 보기는 [docs/aws.md](../docs/aws.md#비용)).
 최종 배포(`SCALING=1`)도 정리 순서는 같습니다 — KEDA·Cluster Autoscaler는 클러스터와 함께 지워지고 AWS에 남는 것이 없습니다.
 
-정리 후 로컬 개발을 이어갈 때는 각자 동일 승인 코드·실제 모델 설정으로 `services/`에서 `bash scripts/dev.sh`를 실행합니다. API가 이미 실행 중이면 별도 터미널에서 `uv run ocr-worker`로 워커만 켭니다. 다른 워커가 남아 있으면 EKS를 꺼도 분석은 계속되고, 모든 워커가 꺼져 있으면 큐에 남은 요청은 워커가 다시 켜질 때 처리됩니다. 배포 코드·모델이 다르면 [공용 워커 전환 절차](../docs/worker.md#ocr공통-코드나-모델을-수정할-때)에 따라 버전을 맞춥니다.
+정리 후 로컬 개발을 이어갈 때는 각자 동일 승인 코드·실제 모델 설정으로 `services/`에서 `bash scripts/dev.sh`를 실행합니다. API가 이미 실행 중이면 별도 터미널에서 `uv run ocr-worker`로 워커만 켭니다. 다른 워커가 남아 있으면 EKS를 꺼도 분석은 계속되고, 모든 워커가 꺼져 있으면 큐에 남은 요청은 워커가 다시 켜질 때 처리됩니다. 배포 코드·모델이 다르면 [워커 버전 전환 절차](../docs/worker.md#ocr공통-코드나-모델을-수정할-때)에 따라 버전을 맞춥니다.
 
 ## 자동 확장 (최종 배포)
 
