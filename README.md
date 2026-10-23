@@ -27,7 +27,7 @@
 알아 둘 것:
 - 로컬 서버도 팀 **공용 DynamoDB·S3·SQS·Cognito·Bedrock**을 씁니다. PC에 DB를 설치하거나 EKS를 만들 필요가 없습니다. `.env`나 AWS 인증정보는 팀원끼리 복사하지 않고 각자 만듭니다.
 - 로컬에서 켜는 OCR 워커는 공용 큐의 모든 팀원 사진을 처리합니다. 켜도 되는 조건은 [OCR 워커 운영](docs/worker.md)에 있습니다.
-- 웹 계정은 웹 관리자가 관리 화면에서 발급합니다. 비밀번호 없이 화면만 볼 때는 로컬 전용 "개발자 모드"를 씁니다(local-setup.md 6단계).
+- 로컬 테스트는 로그인 화면의 "개발자 모드"로 합니다. Cognito 계정이 필요하면 개발자 모드 관리자 화면에서 직접 만들고 지워도 되며, 다른 사람이 만든 계정은 지우지 않습니다(local-setup.md 6단계).
 - Cognito 없이 역할 선택 로그인만 볼 때: `RF_AUTH_MODE=dev bash scripts/dev.sh` + `npm run dev:devauth` (http://localhost:5180).
 - 컨테이너로 배포와 같은 구성을 띄울 때: `bash deploy/local/run.sh` → http://localhost:8088 (로컬 서버와 동시에 켜지 않기, [deploy/README.md](deploy/README.md)).
 
