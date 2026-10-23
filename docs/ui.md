@@ -84,7 +84,7 @@ src/
 | `Widget`, `Metric`, `AmountBars` | 홈 위젯, 숫자 행, 금액 막대 |
 | `RecentReceipts` | 최근 연/올린/처리한 증빙 탭 위젯 |
 | `StatusChip`, `ReviewFlags`, `SearchBox` | 상태 칩, 오류·주의 표시, 검색 칸 |
-| `landing/` | 소개 페이지 그림·애니메이션 (아키텍처 그림, 단계 데모 등), `UsageCard`("AWS 비용" 섹션 — `GET /api/public/usage`, 실패하면 "불러올 수 없어요") |
+| `landing/` | 소개 페이지 그림·애니메이션 (아키텍처 그림, 단계 데모 등), `UsageCard`("AWS 비용" 섹션 — `GET /api/public/usage`, 실패하면 "불러올 수 없어요"), `Team`("만든 사람들" — 영역별 담당 4명·GitHub 프로필·팀 저장소 링크, 화면 코드에 고정) |
 
 ## 소개 페이지 규칙
 

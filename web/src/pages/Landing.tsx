@@ -6,6 +6,7 @@ import Architecture from "../components/landing/Architecture";
 import { useReveal } from "../components/landing/motion";
 import { EmployeeArt, ReviewerArt } from "../components/landing/RoleArt";
 import StepDemo from "../components/landing/StepDemo";
+import TeamSection from "../components/landing/Team";
 import UsageSection from "../components/landing/UsageCard";
 import "./landing.css";
 
@@ -77,6 +78,7 @@ export default function Landing() {
             <a href="#roles">직원·담당자</a>
             <a href="#stack">아키텍처</a>
             <a href="#cost">AWS 비용</a>
+            <a href="#team">팀</a>
           </nav>
           <span className="lp-spacer" />
           <Link to="/login" className="lp-signin">로그인</Link>
@@ -145,6 +147,8 @@ export default function Landing() {
         </section>
 
         <UsageSection />
+
+        <TeamSection />
       </main>
 
       <section className="lp-band">
