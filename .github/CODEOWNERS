@@ -28,14 +28,14 @@
 /docs/backend.md                    @bb2002
 
 # ④ AWS·배포 — 박준영
-/infra/                             @6zeropk
-/deploy/                            @6zeropk
-/.github/                           @6zeropk
-/services/Dockerfile                @6zeropk
-/web/Dockerfile                     @6zeropk
-/docs/aws.md                        @6zeropk
+/infra/                             @nemm3623
+/deploy/                            @nemm3623
+/.github/                           @nemm3623
+/services/Dockerfile                @nemm3623
+/web/Dockerfile                     @nemm3623
+/docs/aws.md                        @nemm3623
 
 # 모두에게 영향: 규약·팀 규칙·흐름 테스트는 네 명 모두
-/docs/contract.md                   @CHAHEE03 @igwi292 @bb2002 @6zeropk
-/AGENTS.md                          @CHAHEE03 @igwi292 @bb2002 @6zeropk
-/services/tests/test_flow.py        @CHAHEE03 @igwi292 @bb2002 @6zeropk
+/docs/contract.md                   @CHAHEE03 @igwi292 @bb2002 @nemm3623
+/AGENTS.md                          @CHAHEE03 @igwi292 @bb2002 @nemm3623
+/services/tests/test_flow.py        @CHAHEE03 @igwi292 @bb2002 @nemm3623
