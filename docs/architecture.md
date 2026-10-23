@@ -10,7 +10,7 @@ AWS 클라우드 AI 부트캠프 4인 팀 프로젝트이고, 발표일은 2026-
 |---|---|---|
 | [AGENTS.md](../AGENTS.md) | **개발 지침**: 건드리면 안 되는 것, 서비스 결정, 담당 영역, 브랜치·PR·검사, AWS 규칙 | 모두 (사람·AI) |
 | [docs/local-setup.md](local-setup.md) | Windows 최초 설치·환경 설정·터미널별 서버 실행·웹 로그인·매일 작업·오류 해결 | 처음 받는 팀원 |
-| [docs/worker.md](worker.md) | 각자 공용 워커 실행 조건·동일 코드와 모델 확인·OCR 수정·테스트 분리 | 모두, 특히 ② AI |
+| [docs/worker.md](worker.md) | 각자 실행하는 OCR 워커(공용 큐)의 실행 조건·동일 코드와 모델 확인·OCR 수정·테스트 분리 | 모두, 특히 ② AI |
 | **docs/architecture.md** (이 문서) | 전체 그림, 요청 흐름, 폴더 지도, 현재 구현 상태, 남은 일 | 모두 |
 | [docs/contract.md](contract.md) | **API·필드·상태·이벤트 규약** (서비스 사이의 약속) | 모두 — 바꿀 땐 관련 담당자 모두 리뷰 |
 | [docs/ui.md](ui.md) | 웹 화면 구조, 역할별 화면, 컴포넌트, 화면 규칙 | ① 웹 |
@@ -96,6 +96,8 @@ infra/terraform/           ④ 스택 6개 ─ docs/aws.md
   state/ base/ admin/ eks/ edge/ ops/
 deploy/                    ④ k8s 매니페스트(kustomize), k8s-scaling(KEDA), deploy.sh·teardown.sh, local/(컨테이너로 로컬 실행)
 .github/workflows/         ④ ci.yml(필수 검사 4개), deploy.yml(main 머지 → 클러스터 있으면 배포)
+.github/CODEOWNERS         경로별 담당자 자동 리뷰 요청 (AGENTS.md 담당 표와 같음)
+.github/pull_request_template.md  PR 설명 항목
 ```
 
 ## 5. 기술 선택 요약

@@ -44,7 +44,7 @@ cd services && uv sync --frozen && bash scripts/dev.sh
 cd web && npm install && npm run dev
 ```
 
-위 두 명령은 프로젝트 루트에서 **서로 다른 터미널**로 각자 실행합니다. `dev.sh`는 API·chat·preprocess와 OCR 워커를 함께 켭니다. 워커는 공용 큐의 모든 팀원 사진을 처리하므로 켜도 되는 조건(최신 `main` 코드·실제 Bedrock 설정)과 끄는 경우(`WORKER=0`), 분석이 대기할 때의 점검은 [공용 OCR 워커 운영](docs/worker.md)에 있습니다.
+위 두 명령은 프로젝트 루트에서 **서로 다른 터미널**로 각자 실행합니다. `dev.sh`는 API·chat·preprocess와 OCR 워커를 함께 켭니다. 워커는 공용 큐의 모든 팀원 사진을 처리하므로 켜도 되는 조건(최신 `main` 코드·실제 Bedrock 설정)과 끄는 경우(`WORKER=0`), 분석이 대기할 때의 점검은 [OCR 워커 운영](docs/worker.md)에 있습니다.
 
 로컬 서버도 **공용 DynamoDB·S3·SQS·Cognito**를 사용합니다. 별도 로컬 DB 설치나 EKS 생성은 필요하지 않습니다. 공용 데이터를 바꾸지 않는 검증은 아래 moto 기반 테스트를 사용합니다.
 
