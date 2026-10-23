@@ -48,6 +48,7 @@
 .help-head h2 { margin: 0; font-size: 16px; }
 .help-close { background: none; border: 0; font-size: 16px; color: var(--ink-2); cursor: pointer; padding: 4px; }
 .help-body { padding: 14px 18px 24px; overflow-y: auto; font-size: 14px; line-height: 1.6; color: var(--ink); }
+.help-foot { margin-top: auto; padding: 12px 18px calc(14px + env(safe-area-inset-bottom)); border-top: 1px solid var(--line); font-size: 13px; }
 .help-body ul { padding-left: 18px; margin: 8px 0; }
 .help-body li { margin: 4px 0; }
 .help-dl { margin: 10px 0; display: grid; gap: 10px; }
@@ -85,6 +86,8 @@
 .side-link.sub { padding-left: 12px; }
 .side-link:hover { color: var(--blue); text-decoration: underline; }
 .side-link.on { color: var(--blue); font-weight: 700; }
+/* "서비스 소개": quiet link under the role's shortcuts */
+.side-foot { margin: -12px 16px 24px 22px; padding-top: 10px; border-top: 1px solid var(--line-2); }
 .side-scrim { display: none; }
 @media (max-width: 760px) {
   .sidebar { position: fixed; left: 0; top: 94px; width: min(280px, 82vw); box-shadow: 4px 0 18px rgba(0, 0, 0, .18); z-index: 30; }

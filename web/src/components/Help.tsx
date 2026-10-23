@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { Link } from "react-router-dom";
 import { api } from "../api";
 
 /** Console-style help: small "정보" links open a side panel (a bottom sheet on phones) that stays open
@@ -122,6 +123,9 @@ export function HelpProvider({ children }: { children: ReactNode }) {
             <button className="help-close" onClick={() => setTopic(null)} aria-label="도움말 닫기">✕</button>
           </div>
           <div className="help-body">{BODIES[topic]()}</div>
+          <div className="help-foot">
+            <Link to="/about" onClick={() => setTopic(null)}>서비스 소개 보기 →</Link>
+          </div>
         </aside>
       )}
     </HelpContext.Provider>

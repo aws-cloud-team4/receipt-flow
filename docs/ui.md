@@ -47,6 +47,7 @@ src/
 | 경로 | 직원 | 검수 담당자 | 관리자 |
 |---|---|---|---|
 | `/` (로그인 전) | 소개 페이지 `Landing` | ← | ← |
+| `/about` (로그인 전·후) | 소개 페이지. 로그인 상태면 앱 틀 밖 전체 화면, 로그인 버튼 대신 "내 홈으로". 왼쪽 메뉴 맨 아래 "서비스 소개"·도움말 패널 아래 링크로 들어감 | ← | ← |
 | `/login` | `Login` (+ 로컬 개발 서버에서만 "개발자 모드") | ← | ← |
 | `/` | `EmployeeDashboard` 홈 | `ReviewerDashboard` 홈 | `AdminUsers` 계정 관리 |
 | `/receipts?status=&cat=&q=` | `EmployeeHome` 내 증빙 | | |

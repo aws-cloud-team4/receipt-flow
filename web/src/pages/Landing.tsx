@@ -1,5 +1,6 @@
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import { Link } from "react-router-dom";
+import type { Me } from "../api";
 import { ChatArt, CheckArt, ScanArt } from "../components/landing/CardArt";
 import HeroArt from "../components/landing/HeroArt";
 import Architecture from "../components/landing/Architecture";
@@ -55,8 +56,13 @@ const ROLES = [
   },
 ];
 
-export default function Landing() {
+/** Signed out it leads to the login; opened from the app (`/about`, `me` set) it leads back home. */
+export default function Landing({ me }: { me?: Me }) {
   const page = useReveal<HTMLDivElement>();
+  // coming from a scrolled app page, start at the top (an #anchor still scrolls on its own)
+  useEffect(() => {
+    if (!window.location.hash) window.scrollTo(0, 0);
+  }, []);
 
   return (
     <div className="lp" ref={page}>
@@ -64,7 +70,7 @@ export default function Landing() {
         <div className="lp-wrap lp-util-row">
           <span>AWS 클라우드 AI 부트캠프 4팀</span>
           <a href="#how">도움말</a>
-          <Link to="/login">로그인</Link>
+          {me ? <span>{me.name}님</span> : <Link to="/login">로그인</Link>}
         </div>
       </div>
 
@@ -81,8 +87,14 @@ export default function Landing() {
             <a href="#cost">AWS 비용</a>
           </nav>
           <span className="lp-spacer" />
-          <Link to="/login" className="lp-signin">로그인</Link>
-          <Link to="/login" className="lp-pill">시작하기</Link>
+          {me ? (
+            <Link to="/" className="lp-pill">내 홈으로</Link>
+          ) : (
+            <>
+              <Link to="/login" className="lp-signin">로그인</Link>
+              <Link to="/login" className="lp-pill">시작하기</Link>
+            </>
+          )}
         </div>
       </header>
 
@@ -92,7 +104,7 @@ export default function Landing() {
           <div className="lp-hero-card">
             <h1>영수증 한 장으로 끝나는<br />경비 처리</h1>
             <p>찍어서 올리면 AI가 읽고, 목적과 분류를 함께 정하고, 담당자는 검토 포인트만 확인해요.</p>
-            <Link to="/login" className="lp-pill lp-pill-lg">로그인하고 시작하기</Link>
+            <Link to={me ? "/" : "/login"} className="lp-pill lp-pill-lg">{me ? "내 홈으로 돌아가기" : "로그인하고 시작하기"}</Link>
           </div>
         </div>
       </section>
@@ -154,10 +166,10 @@ export default function Landing() {
       <section className="lp-band">
         <div className="lp-wrap lp-band-row">
           <div>
-            <h2>지금 첫 영수증을 올려 보세요</h2>
-            <p>회사에서 받은 계정으로 로그인하면 바로 시작할 수 있어요.</p>
+            <h2>{me ? `${me.name}님, 이어서 해 볼까요?` : "지금 첫 영수증을 올려 보세요"}</h2>
+            <p>{me ? "내 홈에서 하던 일을 바로 이어서 할 수 있어요." : "회사에서 받은 계정으로 로그인하면 바로 시작할 수 있어요."}</p>
           </div>
-          <Link to="/login" className="lp-pill lp-pill-light lp-pill-lg">로그인</Link>
+          <Link to={me ? "/" : "/login"} className="lp-pill lp-pill-light lp-pill-lg">{me ? "내 홈으로" : "로그인"}</Link>
         </div>
       </section>
 

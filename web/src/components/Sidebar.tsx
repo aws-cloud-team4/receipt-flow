@@ -127,6 +127,9 @@ export default function Sidebar({ me, onClose }: { me: Me; onClose: () => void }
             </div>
           ))}
         </nav>
+        <div className="side-foot">
+          <Link to="/about" className="side-link">서비스 소개</Link>
+        </div>
       </aside>
       <div className="side-scrim" onClick={onClose} aria-hidden />
     </>
