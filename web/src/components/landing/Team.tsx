@@ -70,7 +70,7 @@ export default function TeamSection() {
             aria-label={`${m.lead ? "조장" : "팀원"} ${m.name} — ${m.area}, GitHub 프로필 열기`}>
             <div className="lp-member-top">
               <Avatar m={m} />
-              <span className={`lp-member-role${m.lead ? " lead" : ""}`}>{m.lead ? "조장" : "팀원"}</span>
+              <span className="lp-member-role">{m.lead ? "조장" : "팀원"}</span>
             </div>
             <span className="lp-member-area">{m.area}</span>
             <h3>{m.name}</h3>

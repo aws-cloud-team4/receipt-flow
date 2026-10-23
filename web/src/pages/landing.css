@@ -304,17 +304,20 @@
 .lp-member.ai { --t1: #8b6cf0; --t2: #d59cff; --tx: #6a46d8; }
 .lp-member.api { --t1: #12a594; --t2: #6ee7c8; --tx: #0b7d70; }
 .lp-member.infra { --t1: #ff9900; --t2: #ffc58f; --tx: #c46f00; }
-/* the thin colour: a top line and a faint corner tint, clipped to the card */
+/* the thin colour: a top line and a faint corner tint over an opaque gray base. The base matters:
+   inside the card's stacking context these layers paint above its own background, so without it
+   the hover glow below would tint the whole card instead of only showing around the edge */
 .lp-member::after {
   content: ""; position: absolute; inset: 0; z-index: -1; border-radius: 16px; pointer-events: none;
   background:
     linear-gradient(90deg, var(--t1), var(--t2)) top / 100% 3px no-repeat,
-    radial-gradient(60% 50% at 100% 0%, color-mix(in srgb, var(--t2) 22%, transparent), transparent 70%);
+    radial-gradient(60% 50% at 100% 0%, color-mix(in srgb, var(--t2) 22%, transparent), transparent 70%),
+    var(--gray);
 }
-/* hover glow, thinner and fainter than the feature cards */
+/* hover glow: only its blurred edge shows past the card, like the feature cards */
 .lp-member::before {
-  content: ""; position: absolute; inset: -1px; z-index: -2; border-radius: 17px; opacity: 0;
-  background: linear-gradient(135deg, var(--t1), var(--t2)); filter: blur(5px); transition: opacity 0.25s;
+  content: ""; position: absolute; inset: -2px; z-index: -2; border-radius: 18px; opacity: 0;
+  background: linear-gradient(135deg, var(--t1), var(--t2)); filter: blur(6px); transition: opacity 0.25s;
 }
 .lp-member-top { display: flex; align-items: flex-start; justify-content: space-between; }
 .lp-team-avatar {
@@ -325,9 +328,8 @@
   width: 100%; height: 100%; border-radius: 50%; border: 2px solid var(--gray); object-fit: cover; background: #fff;
 }
 .lp-team-initial { display: grid; place-items: center; font-size: 18px; font-weight: 700; color: var(--tx); }
-/* role badge: the team lead's is tinted with the area colour, members' is a plain outline */
+/* role badge (조장·팀원): same plain outline for everyone */
 .lp-member-role { padding: 4px 10px; border-radius: 999px; border: 1px solid #d5d9e0; background: #fff; font-size: 12px; font-weight: 700; color: #5f6b7a; }
-.lp-member-role.lead { border-color: color-mix(in srgb, var(--t1) 45%, transparent); background: color-mix(in srgb, var(--t2) 22%, #fff); color: var(--tx); }
 .lp-member-area { margin-top: 18px; font-size: 12px; font-weight: 700; color: var(--tx); }
 .lp-member h3 { margin: 4px 0 0; font-size: 22px; font-weight: 600; letter-spacing: -0.4px; color: var(--ink); }
 .lp-member-paths { align-self: flex-start; margin-top: 10px; padding: 3px 8px; border-radius: 6px; background: #fff; color: #5f6b7a; font-size: 11px; overflow-wrap: anywhere; }
@@ -337,7 +339,7 @@
 .lp-member, .lp-member.reveal.in { transition: transform 0.25s cubic-bezier(.2,.7,.2,1), opacity 0.7s ease; }
 @media (hover: hover) {
   .lp-member:hover, .lp-member.reveal.in:hover { transform: translateY(-4px); }
-  .lp-member:hover::before { opacity: 0.55; }
+  .lp-member:hover::before { opacity: 0.85; }
   .lp-member:hover .lp-team-avatar { animation: lp-ring 6s linear infinite; }
   .lp-member:hover .lp-team-avatar img, .lp-member:hover .lp-team-initial { animation: lp-ring 6s linear infinite reverse; }
   .lp-member:hover .lp-member-link { color: var(--tx); }
@@ -401,12 +403,19 @@
 }
 
 /* "AWS 비용": the team's spend (daily 09:00 snapshot from AWS Budgets) — gray panel, 16px corners; on
-   hover only a light lift and a faint shadow, like the architecture tiles */
-.lp-usage { position: relative; display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 16px;
+   hover it lifts a little and a blurred gradient shows only around its edge, like the feature cards
+   (::after is the opaque gray base so the glow never tints the panel itself) */
+.lp-usage { position: relative; isolation: isolate; display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 16px;
   margin-top: 40px; padding: 16px; border-radius: 16px; background: var(--gray);
-  transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.7s ease; }
+  transition: transform 0.2s ease, opacity 0.7s ease; }
+.lp-usage::after { content: ""; position: absolute; inset: 0; z-index: -1; border-radius: 16px; background: var(--gray); pointer-events: none; }
+.lp-usage::before {
+  content: ""; position: absolute; inset: -2px; z-index: -2; border-radius: 18px; opacity: 0; pointer-events: none;
+  background: linear-gradient(135deg, #7c8bff, #5b7cf2 45%, #5ef0ff); filter: blur(6px); transition: opacity 0.25s;
+}
 @media (hover: hover) {
-  .lp-usage:hover, .lp-usage.reveal.in:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(22, 30, 42, 0.07); }
+  .lp-usage:hover, .lp-usage.reveal.in:hover { transform: translateY(-2px); }
+  .lp-usage:hover::before { opacity: 0.85; }
 }
 .lp-usage-main { position: relative; padding: 56px 24px 24px; border-radius: 12px; background: #fff; }
 .lp-usage-chip { background: #eef2ff; }
