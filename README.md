@@ -22,40 +22,14 @@
 
 ## 로컬에서 실행 (실제 AWS 리소스 사용)
 
-**처음 설치하는 팀원:** [로컬 개발 시작하기](docs/local-setup.md)를 순서대로 따라가세요. 도구 설치·저장소 받기·AWS 로그인·환경 파일·터미널별 실행·웹 로그인·종료·오류 해결까지 정리했습니다. 아래는 빠른 실행 요약입니다.
+설치부터 실행까지는 **[로컬 개발 시작하기](docs/local-setup.md)** 하나만 순서대로 따라가면 됩니다(Windows·Mac). 도구 설치 → 저장소 받기 → AWS 로그인 → 환경 파일 → 설치 확인 테스트 → 서버 실행 → 웹 로그인 → 작업을 PR로 올리기까지 들어 있습니다. 명령은 그 문서에만 두고 여기에는 반복하지 않습니다.
 
-필요: Python 3.13 + [uv](https://docs.astral.sh/uv/), Node 22+, 본인 IAM 사용자로 AWS CLI `team-admin` 프로필 로그인 (팀 공통 프로필 이름, 루트 계정 금지).
-
-Windows에서는 아래 실행 명령을 **Git Bash**에서, Mac에서는 기본 **터미널**에서 실행합니다. 저장소를 받은 각 팀원은 본인 AWS 로그인 후 환경 파일을 생성합니다. `.env`나 AWS 인증정보를 팀원끼리 복사하지 않습니다. AWS 로그인 방법은 [docs/aws.md](docs/aws.md#처음-설정-팀원)를 참고하세요.
-
-설정 파일 만들기 — 본인 AWS 로그인으로 공유 리소스를 조회만 해서 `services/.env`, `web/.env.local`을 씁니다 (AWS는 바꾸지 않음, 있는 파일은 `--force` 없이는 그대로):
-
-```bash
-(cd services && uv run python scripts/make_env.py --dev-login)
-```
-
-Terraform 상태가 있는 사람은 `terraform -chdir=infra/terraform/base output -raw services_env`로도 같은 값을 얻습니다.
-
-```bash
-cd services && uv sync --frozen && bash scripts/dev.sh
-```
-
-```bash
-cd web && npm install && npm run dev
-```
-
-위 두 명령은 프로젝트 루트에서 **서로 다른 터미널**로 각자 실행합니다. `dev.sh`는 API·chat·preprocess와 OCR 워커를 함께 켭니다. 워커는 공용 큐의 모든 팀원 사진을 처리하므로 켜도 되는 조건(최신 `main` 코드·실제 Bedrock 설정)과 끄는 경우(`WORKER=0`), 분석이 대기할 때의 점검은 [OCR 워커 운영](docs/worker.md)에 있습니다.
-
-로컬 서버도 **공용 DynamoDB·S3·SQS·Cognito**를 사용합니다. 별도 로컬 DB 설치나 EKS 생성은 필요하지 않습니다. 공용 데이터를 바꾸지 않는 검증은 아래 moto 기반 테스트를 사용합니다.
-
-http://localhost:5173 에서 로그인합니다. 계정은 관리자가 관리 화면에서 만들고(임시 비밀번호 한 번 표시), 사용자는 첫 로그인 때 새 비밀번호를 정합니다. 최초 관리자 준비는 팀 관리자만 수행합니다. 일반 팀원은 계정 발급을 요청하며 `seed_users.py`를 실행하지 않습니다.
-
-비밀번호 없이 화면만 볼 때:
-- **개발자 로그인:** `services/.env`에 `RF_DEV_LOGIN=true` → 로그인 화면 아래 "개발자 모드"에서 테스트 계정 10개(직원 7·검수 2·관리자 1) 중 선택. 샘플 생성·일괄 정리는 팀 사전 공유 후 담당자가 수행합니다. `clear_dev_data.py`는 본인이 넣은 샘플만이 아니라 **모든 공용 개발 계정(`dev-*`)의 증빙·대화·이력·사진을 삭제**하므로 일반 실행 절차에서 사용하지 않습니다
-- Cognito 없이: `RF_AUTH_MODE=dev bash scripts/dev.sh` + `npm run dev:devauth` (http://localhost:5180)
-
-AI 호출 없이 테스트할 때는 아래 자동 테스트(moto + `RF_AI_MODE=mock`)를 씁니다. mock 워커를 공용 큐에 연결하지 않습니다.
-컨테이너로 한 번에 실행(배포와 같은 구성): `bash deploy/local/run.sh` → http://localhost:8088 (위 서버들과 동시에 켜지 않기).
+알아 둘 것:
+- 로컬 서버도 팀 **공용 DynamoDB·S3·SQS·Cognito·Bedrock**을 씁니다. PC에 DB를 설치하거나 EKS를 만들 필요가 없습니다. `.env`나 AWS 인증정보는 팀원끼리 복사하지 않고 각자 만듭니다.
+- 로컬에서 켜는 OCR 워커는 공용 큐의 모든 팀원 사진을 처리합니다. 켜도 되는 조건은 [OCR 워커 운영](docs/worker.md)에 있습니다.
+- 웹 계정은 웹 관리자가 관리 화면에서 발급합니다. 비밀번호 없이 화면만 볼 때는 로컬 전용 "개발자 모드"를 씁니다(local-setup.md 6단계).
+- Cognito 없이 역할 선택 로그인만 볼 때: `RF_AUTH_MODE=dev bash scripts/dev.sh` + `npm run dev:devauth` (http://localhost:5180).
+- 컨테이너로 배포와 같은 구성을 띄울 때: `bash deploy/local/run.sh` → http://localhost:8088 (로컬 서버와 동시에 켜지 않기, [deploy/README.md](deploy/README.md)).
 
 ## 테스트
 
