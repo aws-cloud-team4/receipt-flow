@@ -1,0 +1,16 @@
+[project]
+name = "ocr-worker"
+version = "0.1.0"
+description = "SQS consumer: Bedrock receipt extraction and amount check (owner: ② AI·데이터)"
+requires-python = ">=3.13,<3.14"
+dependencies = ["receiptflow-common"]
+
+[project.scripts]
+ocr-worker = "ocr_worker.main:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/ocr_worker"]

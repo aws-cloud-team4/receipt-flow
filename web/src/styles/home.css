@@ -1,0 +1,96 @@
+/* Home dashboards (widgets, summary strip, to-do table) and list filters/search. */
+
+/* home: console-style widgets */
+.dash-grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 16px; align-items: stretch; }
+.widget { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; display: flex; flex-direction: column; min-width: 0;
+  container-type: inline-size; } /* contents react to the widget's own width (side menu open, narrow window) */
+.widget.w-3 { grid-column: span 3; } .widget.w-4 { grid-column: span 4; } .widget.w-5 { grid-column: span 5; }
+.widget.w-6 { grid-column: span 6; } .widget.w-7 { grid-column: span 7; } .widget.w-8 { grid-column: span 8; }
+.widget.w-12 { grid-column: span 12; }
+.widget-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 16px 20px 8px; }
+.widget-head h2 { font-size: 17px; letter-spacing: -0.3px; }
+.widget-body { padding: 4px 20px 16px; flex: 1; }
+.widget-foot { border-top: 1px solid var(--line-2); padding: 12px 20px; text-align: center; }
+.btn-pill { border: 2px solid var(--blue); color: var(--blue); background: #fff; border-radius: 999px; padding: 4px 14px; font-size: 13px; font-weight: 700; }
+.btn-pill:hover { background: var(--blue-soft); }
+.metric-row { padding: 10px 0; border-bottom: 1px solid var(--line-2); }
+.metric-row:last-child { border-bottom: 0; }
+.metric-row.clickable { cursor: pointer; }
+.metric-row.clickable:hover .metric-value { text-decoration: underline; }
+.metric-label { font-size: 13px; color: var(--ink-2); }
+.metric-line { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.metric-value { font-size: 24px; font-weight: 700; color: var(--blue); }
+.metric-value.err { color: var(--err); }
+.metric-value.warn { color: #b7791f; }
+.metric-note { font-size: 12px; color: var(--ink-3); text-align: right; }
+.metric-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 0 20px; }
+.link-list { list-style: none; margin: 0; padding: 0; }
+.link-list li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 10px; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--line-2); }
+.link-list li:last-child { border-bottom: 0; }
+.link-list li a { color: var(--blue); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.link-list li.flag-error { box-shadow: inset 3px 0 0 var(--err); padding-left: 8px; }
+.link-list li.flag-warn { box-shadow: inset 3px 0 0 #f0b429; padding-left: 8px; }
+.quick { display: grid; gap: 10px; }
+.quick-item { display: grid; gap: 2px; padding: 10px 0; border-bottom: 1px solid var(--line-2); color: inherit; }
+.quick-item:last-child { border-bottom: 0; }
+.quick-item b { color: var(--blue); font-size: 14px; }
+.quick-item span { font-size: 13px; color: var(--ink-2); }
+.bars { display: grid; gap: 8px; }
+.bar-row { display: grid; grid-template-columns: minmax(2.5em, 110px) minmax(24px, 1fr) max-content; gap: 8px; align-items: center; font-size: 12px; }
+.bar-label { color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bar-track { height: 8px; background: var(--line-2); border-radius: 4px; overflow: hidden; }
+.bar-fill { display: block; height: 100%; background: var(--blue); border-radius: 4px; }
+.bar-amount { text-align: right; font-weight: 600; white-space: nowrap; }
+.category-guide { display: grid; grid-template-columns: 120px 1fr; gap: 6px 12px; margin: 0; font-size: 13px; }
+.category-guide dt { font-weight: 700; }
+.category-guide dd { margin: 0; color: var(--ink-2); }
+@media (max-width: 900px) {
+  .dash-grid { grid-template-columns: minmax(0, 1fr); }
+  .widget[class*="w-"] { grid-column: auto; }
+  .topnav { margin-left: 8px; }
+  .topbar .who-meta { display: none; }
+}
+.topbar .brand, .topnav a, .topbar button.link { white-space: nowrap; flex: none; }
+@media (max-width: 600px) {
+  .topnav { gap: 0; margin-left: 4px; }
+  .topnav a { padding: 6px 7px; font-size: 12px; }
+  .topbar .role-tag { display: none; }
+}
+
+/* reviewer home: a console-style summary strip and the queue table */
+.summary-strip { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 15px; margin-bottom: 16px; overflow: hidden; }
+.summary-item { display: grid; gap: 2px; padding: 14px 18px; color: inherit; border-left: 1px solid var(--line-2); }
+.summary-item:first-child { border-left: 0; }
+.summary-item:hover { background: var(--line-2); }
+.summary-item:hover .metric-value { text-decoration: underline; }
+.summary-item .metric-note { text-align: left; }
+.queue-table td, .queue-table th { padding: 8px 10px; }
+.queue-table tr.row { cursor: pointer; }
+.queue-table .num, .queue-table th { white-space: nowrap; }
+.warn-text { color: #b7791f; font-weight: 600; }
+@media (max-width: 760px) {
+  .summary-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .summary-item:nth-child(3) { border-left: 0; }
+  .summary-item:nth-child(n + 3) { border-top: 1px solid var(--line-2); }
+  .queue-table th:nth-child(4), .queue-table td:nth-child(4) { display: none; }
+  .queue-table td, .queue-table th { padding: 8px 6px; font-size: 13px; }
+  .queue-table td:first-child .muted { display: none; }
+}
+
+/* filter-row search */
+.search-box { position: relative; display: inline-flex; align-items: center; flex: 1 1 260px; max-width: 420px; }
+.search-box svg { position: absolute; left: 10px; color: var(--ink-3); pointer-events: none; }
+.search-box input { width: 100%; border: 1px solid var(--line); border-radius: 8px; padding: 7px 30px 7px 32px; background: var(--panel); font: inherit; }
+.search-box input:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 2px #cfe2f8; }
+.search-box input::-webkit-search-cancel-button { display: none; }
+.search-box button { position: absolute; right: 6px; border: 0; background: none; color: var(--ink-3); cursor: pointer; padding: 4px; }
+.empty-actions { margin-top: 8px; }
+/* employee home */
+.todo-table .todo-note { max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink-2); font-size: 13px; }
+.todo-empty { display: grid; justify-items: start; gap: 6px; padding: 18px 4px; }
+@media (max-width: 760px) { .todo-table th:nth-child(4), .todo-table td:nth-child(4) { display: none; } }
+/* a narrow 할 일 widget (side menu open on a small laptop) drops the note column instead of spilling */
+@container (max-width: 560px) {
+  .todo-table th:nth-child(4), .todo-table td:nth-child(4) { display: none; }
+  .queue-table td, .queue-table th { padding: 8px 6px; }
+}

@@ -1,0 +1,99 @@
+/* App frame: top bar, bar under the logo, side menu, help panel, page container. */
+
+/* ── shell ─────────────────────────────────────────── */
+.topbar {
+  position: sticky; top: 0; z-index: 20;
+  height: 52px; display: flex; align-items: center; gap: 16px;
+  padding: 0 max(16px, env(safe-area-inset-left));
+  background: var(--header); color: #fff;
+}
+.brand { font-size: 21px; font-weight: 750; letter-spacing: -1px; color: #fff; }
+.brand span { font-weight: 400; }
+.topbar .spacer { flex: 1; }
+.topbar .who { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #c6ccd6; white-space: nowrap; min-width: 0; }
+.topbar .who:hover .who-name { text-decoration: underline; }
+.who-name { color: #fff; font-weight: 600; }
+.who-meta { overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 520px) { .who-meta { display: none; } }
+.role-tag { font-size: 11px; padding: 2px 8px; border: 1px solid #5d6878; border-radius: 4px; }
+.topbar button.link { background: none; border: 0; color: #c6ccd6; font-size: 12px; padding: 6px 0; }
+.subnav { display: flex; align-items: center; gap: 6px; font-size: 14px; color: var(--ink-2); white-space: nowrap; }
+.subnav .crumb { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
+.subnav .crumb svg { color: var(--ink-3); flex: none; }
+.subnav a { color: var(--blue); text-decoration: underline; text-underline-offset: 2px; }
+.subnav a:hover { color: #033160; }
+.subnav [aria-current] { overflow: hidden; text-overflow: ellipsis; }
+.page { max-width: 1240px; margin: 0 auto; padding: 20px 16px 32px; }
+/* room under the last panel for the bottom action bar (it sits in this padding: margin -96px) */
+.page:has(.sticky-actions) { padding-bottom: 96px; }
+.page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+.page-head h1 { font-size: 22px; letter-spacing: -0.5px; }
+.page-head p { color: var(--ink-2); margin-top: 4px; }
+
+/* top menu */
+.topnav { display: flex; gap: 4px; margin-left: 18px; }
+.topnav a { color: #c6ccd6; font-size: 13px; font-weight: 600; padding: 6px 10px; border-radius: 6px; }
+.topnav a:hover { color: #fff; background: rgba(255,255,255,.08); }
+.topnav a.active { color: #fff; background: rgba(255,255,255,.14); }
+
+/* console-style help: "정보" links and a side panel (bottom sheet on phones) */
+.info-link { background: none; border: 0; padding: 0 2px; margin-left: 6px; color: var(--blue); font-size: 12px; font-weight: 700; cursor: pointer; vertical-align: middle; }
+.info-link:hover { text-decoration: underline; }
+.help-panel {
+  position: fixed; top: 52px; right: 0; bottom: 0; z-index: 30; width: 360px; max-width: 100vw;
+  background: var(--panel); border-left: 1px solid var(--line); box-shadow: -6px 0 18px rgba(22, 30, 42, 0.1);
+  display: flex; flex-direction: column;
+}
+.help-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid var(--line); }
+.help-head h2 { margin: 0; font-size: 16px; }
+.help-close { background: none; border: 0; font-size: 16px; color: var(--ink-2); cursor: pointer; padding: 4px; }
+.help-body { padding: 14px 18px 24px; overflow-y: auto; font-size: 14px; line-height: 1.6; color: var(--ink); }
+.help-body ul { padding-left: 18px; margin: 8px 0; }
+.help-body li { margin: 4px 0; }
+.help-dl { margin: 10px 0; display: grid; gap: 10px; }
+.help-dl dt { font-weight: 700; font-size: 13px; }
+.help-dl dd { margin: 2px 0 0; color: var(--ink-2); font-size: 13px; }
+.help-flow { background: var(--line-2); border-radius: 8px; padding: 10px 12px; font-size: 13px; }
+@media (max-width: 760px) {
+  .help-panel { top: auto; left: 0; width: auto; height: 70vh; border-left: 0; border-top: 1px solid var(--line); border-radius: 15px 15px 0 0; box-shadow: 0 -6px 18px rgba(22, 30, 42, 0.15); }
+  .help-body { padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
+}
+
+/* console-style bar under the logo (menu button, help) and the side menu it opens */
+.toolbar { position: sticky; top: 52px; z-index: 18; height: 42px; border-top: 0; display: flex; align-items: center; gap: 8px;
+  padding: 0 max(12px, env(safe-area-inset-left)); background: var(--panel); border-bottom: 1px solid var(--line); }
+.toolbar .crumbs { flex: 1; min-width: 0; overflow-x: auto; scrollbar-width: none; margin-left: 4px; }
+.menu-btn, .toolbar-info { display: grid; place-items: center; width: 30px; height: 30px; border: 0; border-radius: 50%;
+  background: none; color: var(--ink); }
+.menu-btn:hover, .toolbar-info:hover { background: var(--line-2); }
+.menu-btn.on { background: var(--blue); color: #fff; }
+.app-body { display: flex; align-items: flex-start; }
+.app-main { flex: 1; min-width: 0; overflow-x: clip; } /* clip, not hidden: keeps sticky bars working */
+.sidebar { position: sticky; top: 94px; flex: none; width: 260px; height: calc(100vh - 94px); overflow-y: auto;
+  background: var(--panel); border-right: 1px solid var(--line); z-index: 15; }
+.side-head { display: flex; align-items: center; justify-content: space-between; padding: 18px 16px 10px 22px; }
+.side-head b { font-size: 17px; }
+.side-close { display: grid; place-items: center; width: 30px; height: 30px; border: 0; border-radius: 6px; background: none; color: var(--ink-2); }
+.side-close:hover { background: var(--line-2); color: var(--ink); }
+.side-nav { padding: 0 0 24px; }
+.side-group { padding: 6px 0; }
+.side-group + .side-group { border-top: 1px solid var(--line-2); margin: 0 16px 0 22px; padding: 10px 0 6px; }
+.side-group + .side-group .side-link { margin-left: 0; }
+.side-title { font-size: 14px; font-weight: 700; color: var(--ink); padding: 4px 0 4px; }
+.side-group:first-child { padding: 0 16px 6px 22px; }
+.side-link { display: block; padding: 5px 0; color: var(--ink-2); font-size: 14px; white-space: nowrap; }
+.side-link.sub { padding-left: 12px; }
+.side-link:hover { color: var(--blue); text-decoration: underline; }
+.side-link.on { color: var(--blue); font-weight: 700; }
+.side-scrim { display: none; }
+@media (max-width: 760px) {
+  .sidebar { position: fixed; left: 0; top: 94px; width: min(280px, 82vw); box-shadow: 4px 0 18px rgba(0, 0, 0, .18); z-index: 30; }
+  .side-scrim { display: block; position: fixed; inset: 94px 0 0 0; background: rgba(15, 20, 27, .35); z-index: 25; }
+}
+
+/* phones: the ☰ menu under the logo has the same links, so the top menu steps aside and the name
+   no longer runs into 로그아웃 (the admin's 계정 관리 · 증빙 관리 is the longest) */
+@media (max-width: 480px) {
+  .topnav { display: none; }
+  .topbar .who { flex: none; }
+}

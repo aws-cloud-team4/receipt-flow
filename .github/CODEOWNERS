@@ -1,0 +1,41 @@
+# 영역 담당 (AGENTS.md "담당과 경계"). PR이 아래 경로를 바꾸면 그 담당자에게 리뷰가 자동 요청됩니다.
+# 아래쪽 줄이 위쪽 줄보다 우선합니다.
+
+# ① 웹 — 장차희
+/web/                               @CHAHEE03
+/docs/ui.md                         @CHAHEE03
+
+# ② AI·데이터 처리 — 김태희
+/services/ocr-worker/               @igwi292
+/services/chat-service/             @igwi292
+/services/preprocess-service/       @igwi292
+/services/scripts/eval/             @igwi292
+/services/tests/test_chat_*         @igwi292
+/services/tests/test_ocr_*          @igwi292
+/services/tests/test_preprocess_*   @igwi292
+/docs/ai.md                         @igwi292
+/docs/model-eval.md                 @igwi292
+/docs/worker.md                     @igwi292
+
+# ③ 백엔드·DB — 김수빈
+/services/api-service/              @bb2002
+/services/common/                   @bb2002
+/services/tests/test_api_*          @bb2002
+/services/tests/test_common_*       @bb2002
+/services/scripts/*.py              @bb2002
+/services/pyproject.toml            @bb2002
+/services/uv.lock                   @bb2002
+/docs/backend.md                    @bb2002
+
+# ④ AWS·배포 — 박준영
+/infra/                             @6zeropk
+/deploy/                            @6zeropk
+/.github/                           @6zeropk
+/services/Dockerfile                @6zeropk
+/web/Dockerfile                     @6zeropk
+/docs/aws.md                        @6zeropk
+
+# 모두에게 영향: 규약·팀 규칙·흐름 테스트는 네 명 모두
+/docs/contract.md                   @CHAHEE03 @igwi292 @bb2002 @6zeropk
+/AGENTS.md                          @CHAHEE03 @igwi292 @bb2002 @6zeropk
+/services/tests/test_flow.py        @CHAHEE03 @igwi292 @bb2002 @6zeropk

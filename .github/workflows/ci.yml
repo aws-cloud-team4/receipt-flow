@@ -1,0 +1,59 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  services:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: services
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.13"
+      - run: uv sync --frozen
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run pytest -q
+
+  web:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - run: node --test tests/*.test.mjs
+      - run: npm run build
+
+  terraform:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: hashicorp/setup-terraform@v3
+      - run: terraform fmt -recursive -check infra/terraform
+      - run: |
+          for stack in state base admin eks edge ops; do
+            terraform -chdir=infra/terraform/$stack init -backend=false -input=false
+            terraform -chdir=infra/terraform/$stack validate
+          done
+
+  images:
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        service: [api-service, chat-service, preprocess-service, ocr-worker]
+    steps:
+      - uses: actions/checkout@v5
+      - run: docker build --build-arg SERVICE=${{ matrix.service }} -t ${{ matrix.service }}:ci services/

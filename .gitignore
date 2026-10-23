@@ -1,0 +1,14 @@
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.log
+~$*
+.claude/worktrees/
+.claude/settings.local.json
+# Receipt photos dropped here for testing (personal data) never go into git.
+영수증/
+
+# Local container run: settings and short-lived AWS keys written by deploy/local/run.sh
+deploy/local/.env.*
+.claude/launch.json

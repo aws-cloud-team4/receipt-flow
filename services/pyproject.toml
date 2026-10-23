@@ -1,0 +1,45 @@
+[project]
+name = "receipt-flow-services"
+version = "0.1.0"
+requires-python = ">=3.13,<3.14"
+dependencies = [
+    "receiptflow-common",
+    "api-service",
+    "chat-service",
+    "preprocess-service",
+    "ocr-worker",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "httpx>=0.28",
+    "moto[s3,sqs,dynamodb,cognitoidp]>=5.1",
+    "ruff>=0.14",
+    "botocore[crt]",  # local `aws login` profiles; pods use Pod Identity instead
+]
+
+[tool.uv]
+package = false
+
+[tool.uv.workspace]
+members = ["common", "api-service", "chat-service", "preprocess-service", "ocr-worker"]
+
+[tool.uv.sources]
+receiptflow-common = { workspace = true }
+api-service = { workspace = true }
+chat-service = { workspace = true }
+preprocess-service = { workspace = true }
+ocr-worker = { workspace = true }
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["tests"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+ignore = ["B008"]  # FastAPI Depends() in defaults is the framework idiom

@@ -1,0 +1,32 @@
+# kubectl apply -k deploy/k8s
+# CI sets image tags with `kustomize edit set image ...` (see .github/workflows/deploy.yml).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: receipt-flow
+
+resources:
+  - namespace.yaml
+  - config.yaml
+  - api-service.yaml
+  - chat-service.yaml
+  - preprocess-service.yaml
+  - ocr-worker.yaml
+  - web.yaml
+  - ingress.yaml
+
+images:
+  - name: api-service
+    newName: 431777499129.dkr.ecr.ap-northeast-2.amazonaws.com/receipt-flow/api-service
+    newTag: latest
+  - name: chat-service
+    newName: 431777499129.dkr.ecr.ap-northeast-2.amazonaws.com/receipt-flow/chat-service
+    newTag: latest
+  - name: preprocess-service
+    newName: 431777499129.dkr.ecr.ap-northeast-2.amazonaws.com/receipt-flow/preprocess-service
+    newTag: latest
+  - name: ocr-worker
+    newName: 431777499129.dkr.ecr.ap-northeast-2.amazonaws.com/receipt-flow/ocr-worker
+    newTag: latest
+  - name: web
+    newName: 431777499129.dkr.ecr.ap-northeast-2.amazonaws.com/receipt-flow/web
+    newTag: latest

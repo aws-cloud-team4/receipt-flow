@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+.env
+scripts/*.local.json
+scripts/eval/**/results.json
+scripts/eval/real/*
+!scripts/eval/real/README.md

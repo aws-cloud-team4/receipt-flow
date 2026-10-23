@@ -1,0 +1,87 @@
+# Merge to main → new images → rolling update on the EKS cluster, but only while a cluster exists
+# (it is created for rehearsals and the demo, then deleted the same day; otherwise this job skips).
+# Also runs by hand: Actions → deploy → Run workflow.
+# Needs the repo secret AWS_DEPLOY_ROLE_ARN (infra/terraform/admin output github_deploy_role_arn,
+# created when the admin stack's github_repo is set to this repository). Without it the job skips.
+# First deploy of a new cluster (ALB controller, autoscalers, HTTPS): bash deploy/deploy.sh from a PC.
+name: deploy
+
+on:
+  push:
+    branches: [main]
+    paths: ["services/**", "web/**", "deploy/k8s/**", "deploy/k8s-scaling/**"]
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: ap-northeast-2
+  ECR: 431777499129.dkr.ecr.ap-northeast-2.amazonaws.com
+  CLUSTER: receipt-flow-dev
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    environment: demo
+    env:
+      HAS_ROLE: ${{ secrets.AWS_DEPLOY_ROLE_ARN != '' }}
+    steps:
+      - name: Deploy role set?
+        if: env.HAS_ROLE != 'true'
+        run: echo "::notice::AWS_DEPLOY_ROLE_ARN is not set — skipping deploy"
+
+      - uses: actions/checkout@v5
+        if: env.HAS_ROLE == 'true'
+      - uses: aws-actions/configure-aws-credentials@v5
+        if: env.HAS_ROLE == 'true'
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Cluster up?
+        id: cluster
+        if: env.HAS_ROLE == 'true'
+        run: |
+          if aws eks describe-cluster --name $CLUSTER --query cluster.status --output text 2>/dev/null | grep -q ACTIVE; then
+            echo "up=true" >> $GITHUB_OUTPUT
+          else
+            echo "up=false" >> $GITHUB_OUTPUT
+            echo "::notice::No running EKS cluster — skipping deploy (images are built at deploy time)"
+          fi
+
+      - uses: aws-actions/amazon-ecr-login@v2
+        if: steps.cluster.outputs.up == 'true'
+
+      - name: Build and push images
+        if: steps.cluster.outputs.up == 'true'
+        run: |
+          TAG=${GITHUB_SHA::12}
+          echo "TAG=$TAG" >> $GITHUB_ENV
+          for s in api-service chat-service preprocess-service ocr-worker; do
+            docker build --build-arg SERVICE=$s -t $ECR/receipt-flow/$s:$TAG services/
+            docker push $ECR/receipt-flow/$s:$TAG
+          done
+          CLIENT_ID=$(grep 'RF_COGNITO_CLIENT_ID:' deploy/k8s/config.yaml | awk '{print $2}')
+          docker build --build-arg VITE_COGNITO_CLIENT_ID=$CLIENT_ID -t $ECR/receipt-flow/web:$TAG web/
+          docker push $ECR/receipt-flow/web:$TAG
+
+      - name: Apply manifests
+        if: steps.cluster.outputs.up == 'true'
+        run: |
+          aws eks update-kubeconfig --region $AWS_REGION --name $CLUSTER
+          cd deploy/k8s
+          for s in api-service chat-service preprocess-service ocr-worker web; do
+            kustomize edit set image $s=$ECR/receipt-flow/$s:$TAG
+          done
+          kubectl apply -k .
+          # final deploy: KEDA is installed → keep ocr-worker scaling on the queue
+          if kubectl get crd scaledobjects.keda.sh >/dev/null 2>&1; then
+            kubectl apply -f ../k8s-scaling/
+          fi
+          kubectl -n receipt-flow rollout status deploy --timeout=300s

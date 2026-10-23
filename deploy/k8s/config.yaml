@@ -1,0 +1,18 @@
+# Values from `terraform -chdir=infra/terraform/base output`. No secrets here:
+# AWS access comes from EKS Pod Identity (one role per service account).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rf-config
+data:
+  RF_REGION: ap-northeast-2
+  RF_TABLE: receipt-flow-dev
+  RF_BUCKET: receipt-flow-dev-receipts-431777499129
+  RF_QUEUE_URL: https://sqs.ap-northeast-2.amazonaws.com/431777499129/receipt-flow-dev-analysis
+  RF_AUTH_MODE: cognito
+  RF_COGNITO_POOL_ID: ap-northeast-2_mPFYFe46d
+  RF_COGNITO_CLIENT_ID: 210f24t3pn5t0ac06phdatomed
+  RF_AI_MODE: bedrock
+  RF_EXTRACT_MODEL: global.anthropic.claude-sonnet-5-5
+  RF_CHAT_MODEL: global.anthropic.claude-haiku-5-5
+  RF_CORS_ORIGINS: ""

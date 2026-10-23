@@ -1,0 +1,24 @@
+# One internet-facing ALB (AWS Load Balancer Controller). Same paths the Vite dev proxy uses.
+# HTTPS comes from CloudFront in front of this ALB (infra/terraform/edge). With an own domain, an ACM
+# certificate on the ALB would also work:
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: receipt-flow
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/healthcheck-path: /healthz
+    alb.ingress.kubernetes.io/load-balancer-attributes: idle_timeout.timeout_seconds=120
+    # alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
+    # alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:ap-northeast-2:...:certificate/...
+    # alb.ingress.kubernetes.io/ssl-redirect: "443"
+spec:
+  ingressClassName: alb
+  rules:
+    - http:
+        paths:
+          - {path: /api, pathType: Prefix, backend: {service: {name: api-service, port: {number: 80}}}}
+          - {path: /chat, pathType: Prefix, backend: {service: {name: chat-service, port: {number: 80}}}}
+          - {path: /preprocess, pathType: Prefix, backend: {service: {name: preprocess-service, port: {number: 80}}}}
+          - {path: /, pathType: Prefix, backend: {service: {name: web, port: {number: 80}}}}

@@ -1,0 +1,37 @@
+# Final deploy only: ocr-worker follows the analysis queue (1 → 5 pods). Applied by `SCALING=1 deploy/deploy.sh`
+# after it installs KEDA. KEDA reads the queue length with its own Pod Identity role
+# (keda/keda-operator → infra/terraform/admin scaling.tf), so the trigger uses identityOwner: keda.
+apiVersion: keda.sh/v1alpha1
+kind: TriggerAuthentication
+metadata:
+  name: ocr-worker-aws
+  namespace: receipt-flow
+spec:
+  podIdentity:
+    provider: aws
+    identityOwner: keda
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: ocr-worker
+  namespace: receipt-flow
+spec:
+  scaleTargetRef:
+    name: ocr-worker
+  minReplicaCount: 1
+  maxReplicaCount: 5
+  # With minReplicaCount=1, HPA controls scale-down; cooldownPeriod only applies to scaling to zero.
+  advanced:
+    horizontalPodAutoscalerConfig:
+      behavior:
+        scaleDown:
+          stabilizationWindowSeconds: 120
+  triggers:
+    - type: aws-sqs-queue
+      authenticationRef:
+        name: ocr-worker-aws
+      metadata:
+        queueURL: https://sqs.ap-northeast-2.amazonaws.com/431777499129/receipt-flow-dev-analysis
+        queueLength: "5"
+        awsRegion: ap-northeast-2

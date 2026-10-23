@@ -1,0 +1,30 @@
+/* Reviewer list and detail. */
+
+/* reviewer list: oldest first, flagged rows highlighted */
+.filters .spacer { flex: 1; }
+.filters { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 0 0 12px; }
+.filters select { border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; background: var(--panel); font: inherit; }
+.check-label { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; }
+.table tr.flag-error td:first-child { box-shadow: inset 3px 0 0 var(--err); }
+.table tr.flag-warn td:first-child { box-shadow: inset 3px 0 0 #f0b429; }
+.card-row.flag-error { border-left: 3px solid var(--err); }
+.card-row.flag-warn { border-left: 3px solid #f0b429; }
+/* reviewer detail */
+.chat-transcript > summary { cursor: pointer; list-style: none; }
+.chat-transcript > summary::-webkit-details-marker { display: none; }
+.chat-log.readonly { max-height: 360px; overflow: auto; display: flex; flex-direction: column; gap: 8px; }
+.change-request .reason { width: 100%; min-height: 96px; box-sizing: border-box; resize: vertical; }
+.reason-count { text-align: right; font-size: 12px; }
+.reason-count.error-text { color: var(--err); }
+/* change request: picked from review points, fields and photo presets */
+.alert.point { align-items: center; }
+.alert.point .point-text { flex: 1; min-width: 0; }
+.pick-btn { flex-shrink: 0; border: 1px solid var(--line); background: var(--panel); color: var(--ink-2); border-radius: 999px; padding: 3px 10px; font-size: 12px; font-weight: 600; white-space: nowrap; cursor: pointer; }
+.pick-btn:hover:not(:disabled) { border-color: var(--blue); color: var(--blue); }
+.pick-btn.on { border-color: var(--blue); background: var(--blue-soft); color: var(--blue); }
+.kv dd.flaggable { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.kv dd.flaggable > span { min-width: 0; }
+.request-empty { padding: 12px; border: 1px dashed var(--line); border-radius: 8px; text-align: center; }
+.request-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.request-preview { display: grid; gap: 6px; }
+.request-preview .bubble { max-width: 100%; }
