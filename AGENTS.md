@@ -37,7 +37,7 @@
 | 웹 화면·사용자 흐름 | `web/` | ① 장차희 | @CHAHEE03 |
 | AI·데이터 처리 | `services/ocr-worker`, `services/chat-service`, `services/preprocess-service` | ② 김태희 | @igwi292 |
 | 백엔드·DB | `services/api-service`, `services/common` | ③ 김수빈 | @bb2002 |
-| AWS·배포 | `infra/`, `deploy/`, `.github/` | ④ 박준영 | @6zeropk |
+| AWS·배포 | `infra/`, `deploy/`, `.github/` | ④ 박준영 | @nemm3623 |
 
 - 담당 영역 밖 파일을 고치는 PR은 그 영역 담당자를 리뷰어로 지정합니다. `.github/CODEOWNERS`가 경로별 담당자에게 리뷰를 자동 요청합니다.
 - 작업 범위 밖 파일은 고치지 않습니다. 필요하면 PR 설명에 적고 담당자와 이야기합니다.
