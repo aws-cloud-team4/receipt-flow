@@ -79,7 +79,7 @@ uv run ruff format --check . && uv run ruff check . && uv run pytest   # CI 필�
 | `gsi1` | `gsi1pk=OWNER#{sub}`, `gsi1sk=created_at` | 내 증빙 목록, 중복·같은 승인번호 점검 |
 | `gsi2` | `gsi2pk=STATUS#{review_status}`, `gsi2sk=updated_at` | 검수·관리자 상태별 목록 |
 
-`store.py` 주요 함수: `create_receipt`, `get_receipt`, `update_receipt`(`expect={"review_status": (...)}`로 **상태 조건부 쓰기** — 그 사이 상태가 바뀌었으면 `ConflictError` → 409), `apply_fields`(칸 반영 + 점검 다시 계산), `list_by_owner`, `list_by_status`, `delete_receipt`(대화·이력까지, 상태 조건), `add_event`/`list_events`, `add_message`/`list_messages`/`delete_messages`, `log_deletion`/`list_deletions`/`delete_deletion`, `next_sequence`.
+`store.py` 주요 함수: `create_receipt`, `get_receipt`, `update_receipt`(`expect={"review_status": (...)}`로 **상태 조건부 쓰기** — 그 사이 상태가 바뀌었으면 `ConflictError` → 409), `apply_fields`(칸 반영 + 점검 다시 계산), `list_by_owner`, `list_by_status`(화면 목록, 최대 `limit`건), `list_all_by_status`(페이지를 끝까지 읽음 — CSV 내보내기), `delete_receipt`(대화·이력까지, 상태 조건), `add_event`/`list_events`, `add_message`/`list_messages`/`delete_messages`, `log_deletion`/`list_deletions`/`delete_deletion`, `next_sequence`.
 DynamoDB 숫자는 `Decimal`이라 `_plain`/`_ddb`가 오갈 때 변환합니다.
 
 ## 인증·권한
