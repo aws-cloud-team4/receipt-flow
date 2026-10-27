@@ -331,11 +331,15 @@ export async function putImage(upload: Upload, blob: Blob) {
   if (!resp.ok) throw new ApiError(resp.status, "upload_failed", "사진 업로드에 실패했습니다. 다시 시도해 주세요.");
 }
 
-export async function downloadCsv(month: string) {
-  const resp = await fetch(`/api/review/export.csv?month=${month}`, { headers: await headers() });
+/** "approved": settlement file (approved only + total row); "all": every submitted receipt. */
+export type CsvScope = "all" | "approved";
+
+export async function downloadCsv(month: string, status: CsvScope = "all") {
+  const resp = await fetch(`/api/review/export.csv?month=${month}&status=${status}`, { headers: await headers() });
   if (!resp.ok) throw new ApiError(resp.status, "export_failed", "내보내기에 실패했습니다.");
   const url = URL.createObjectURL(await resp.blob());
-  const a = Object.assign(document.createElement("a"), { href: url, download: `receipts-${month}.csv` });
+  const name = status === "approved" ? `receipts-${month}-approved.csv` : `receipts-${month}.csv`;
+  const a = Object.assign(document.createElement("a"), { href: url, download: name });
   a.click();
   URL.revokeObjectURL(url);
 }

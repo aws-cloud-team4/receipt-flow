@@ -127,7 +127,7 @@ Cognito 사용자 속성 → ID 토큰 → `GET /api/me`. 직원·담당자 화�
 | `GET /api/review/receipts?status=submitted` | 담당자 | 상태별 목록. 각 항목에 `review_points`. 화면은 먼저 제출된 순(선입선출)으로 보여 주고, 오류·주의가 있는 건은 색·표시로 강조하고, 검수 목록에 **"주의" 탭**을 둔다(웹 주소 `/review?status=flagged`). 실제 API는 `status=submitted` 목록을 받고 웹에서 오류·주의 항목을 필터링한다. API의 허용 상태는 `submitted`·`approved`·`changes_requested`·`draft`이며 `status=flagged`를 API에 보내면 `422`다. 홈의 "주의·오류" 숫자는 이 탭으로 연결 |
 | `POST /api/review/receipts/{id}/approve` | 담당자 | 승인 |
 | `POST /api/review/receipts/{id}/request-changes` `{reason, fields?}` | 담당자 | 보완 요청. `fields`: 다시 봐야 할 칸 (`photo`는 사진 다시 찍기, 목록 밖이면 `400 unknown_fields`). `review_note`·`review_fields`로 저장 |
-| `GET /api/review/export.csv?month=YYYY-MM` | 담당자 | 월별 CSV (사번·제출자·직급·상태 + 모든 증빙 칸 + 제출일시·검수자·검수일시·보완 요청 사유) |
+| `GET /api/review/export.csv?month=YYYY-MM&status=all\|approved` | 담당자 | 월별 CSV (사번·제출자·직급·상태 + 모든 증빙 칸 + 제출일시·검수자·검수일시·보완 요청 사유). 달은 **거래 일시** 기준, 거래 일시순. `status=all`(기본): 작성 중을 뺀 전체(제출·보완 요청·승인), 파일 이름 `receipts-YYYY-MM.csv`. `status=approved`: 승인 건만(정산용) + 맨 아래 합계 줄(건수, 금액 칸 합), 파일 이름 `receipts-YYYY-MM-approved.csv`. 그 밖의 값은 `400 invalid_request`. 건수 제한 없이 모두 담는다. 엑셀 수식 실행을 막으려고 `= + - @`·탭·줄바꿈으로 시작하는 글자 칸은 앞에 `'`를 붙인다(숫자 칸은 그대로) |
 
 **검토 포인트 `review_points`** — 승인자가 먼저 볼 것을 서버가 규칙으로 뽑은 목록 `[{level: "error"|"warn"|"info", code, text, fields}]`.
 `code`는 포인트 종류, `fields`는 관련 칸 키 목록(없으면 `[]`). 화면은 `code`로 보완 요청 문구를 고르고 `fields`를 고칠 칸으로 쓴다.
