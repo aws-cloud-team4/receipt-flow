@@ -206,6 +206,21 @@ def list_by_status(status: str, limit: int = 200) -> list[dict[str, Any]]:
     return [_public(i) for i in resp["Items"]]
 
 
+def list_all_by_status(status: str) -> list[dict[str, Any]]:
+    """Every receipt in a status, following DynamoDB pages (exports must not drop rows)."""
+    args: dict[str, Any] = {
+        "IndexName": "gsi2",
+        "KeyConditionExpression": Key("gsi2pk").eq(f"STATUS#{status}"),
+    }
+    items: list[dict[str, Any]] = []
+    while True:
+        resp = aws.table().query(**args)
+        items += resp["Items"]
+        if "LastEvaluatedKey" not in resp:
+            return [_public(i) for i in items]
+        args["ExclusiveStartKey"] = resp["LastEvaluatedKey"]
+
+
 def _children(receipt_id: str, prefix: str) -> list[dict[str, Any]]:
     resp = aws.table().query(
         KeyConditionExpression=Key("pk").eq(_pk(receipt_id)) & Key("sk").begins_with(prefix),

@@ -65,11 +65,16 @@ export default function ReviewHome() {
             <h1>검수 목록<InfoLink topic="status" /></h1>
             <p>제출된 증빙을 확인하고 승인하거나 보완을 요청하세요.</p>
           </div>
-          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
             <input type="month" value={month} onChange={(e) => setMonth(e.target.value)} aria-label="내보낼 월"
               className="btn btn-ghost" style={{ fontWeight: 500 }} />
-            <button className="btn btn-blue" onClick={() => downloadCsv(month).catch((e) => setError(e.message))}>
-              CSV 내보내기
+            <button className="btn btn-ghost" title="제출·보완 요청·승인 모두 (진행 상황 확인용)"
+              onClick={() => downloadCsv(month).catch((e) => setError(e.message))}>
+              전체 CSV
+            </button>
+            <button className="btn btn-blue" title="승인된 건만, 맨 아래 합계 줄 (회계 정산용)"
+              onClick={() => downloadCsv(month, "approved").catch((e) => setError(e.message))}>
+              정산용 CSV
             </button>
           </div>
         </div>

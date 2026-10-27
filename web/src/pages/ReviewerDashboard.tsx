@@ -133,7 +133,7 @@ export default function ReviewerDashboard({ me }: { me: Me }) {
           ]} />
 
         <Widget title="이번 달 승인 — 분류별" span={4} info="categories"
-          action={<button className="btn btn-pill" onClick={() => downloadCsv(thisMonth()).catch((e) => setError(e.message))}>CSV 받기</button>}>
+          action={<button className="btn btn-pill" onClick={() => downloadCsv(thisMonth(), "approved").catch((e) => setError(e.message))}>정산용 CSV</button>}>
           <AmountBars rows={sumBy(approved, (r) => categoryLabel(r.fields.category), (r) => r.fields.total_amount)} />
         </Widget>
 
