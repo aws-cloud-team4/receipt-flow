@@ -25,7 +25,7 @@ EKS는 시간당 비용이 나므로 필요할 때 만들고 **같은 날** 지�
 
 | | 테스트·리허설 | 최종 배포 (발표) |
 |---|---|---|
-| 노드 | 1대 (`node_count=1`, 기본) | 2대로 시작, 최대 3대 (`-var node_count=2`) |
+| 노드 | 1대 (`node_count=1`, 기본) | 2~3대: 최소 2·최대 3 (`-var node_count=2 -var node_min_count=2`) |
 | 자동 확장 | 없음 (HPA만, 부하가 없으면 그대로) | Cluster Autoscaler(노드) + KEDA(큐 길이 → ocr-worker 1~5개) + HPA(api·chat·preprocess) |
 | 배포 명령 | `bash deploy/deploy.sh` | `SCALING=1 bash deploy/deploy.sh` |
 | 비용 | 약 $0.20/h | 약 $0.25~0.30/h |
@@ -35,7 +35,7 @@ EKS는 시간당 비용이 나므로 필요할 때 만들고 **같은 날** 지�
 |---|---|
 | 1. 기본 리소스 (S3·SQS·DynamoDB·Cognito·ECR) — 이미 있음, 코드가 바뀌었으면 | `terraform -chdir=infra/terraform/base apply` |
 | 2. IAM 역할·정책 — 코드가 바뀌었으면 | `terraform -chdir=infra/terraform/admin apply -var aws_profile=team-admin` |
-| 3. EKS 클러스터 (약 15분) — 최종 배포는 `-var node_count=2` 추가 | `terraform -chdir=infra/terraform/eks apply -var aws_profile=team-admin -var 'admin_principal_arns=["arn:aws:iam::431777499129:user/<팀원>"]'` |
+| 3. EKS 클러스터 (약 15분) — 최종 배포는 `-var node_count=2 -var node_min_count=2` 추가 | `terraform -chdir=infra/terraform/eks apply -var aws_profile=team-admin -var 'admin_principal_arns=["arn:aws:iam::431777499129:user/<팀원>"]'` |
 | 4. 연결·ALB 컨트롤러·(최종: 자동 확장 설치)·이미지 빌드/업로드·배포·HTTPS 연결·주소 출력 | `bash deploy/deploy.sh` (최종: `SCALING=1 bash deploy/deploy.sh`) |
 
 `deploy.sh`는 다시 실행해도 됩니다 (현재 커밋으로 이미지를 다시 올리고 갱신). 접속은 끝에 출력되는 **`https://….cloudfront.net` 주소**로 합니다 (휴대폰 카메라는 HTTPS에서만 동작). `http://<ALB 주소>`는 확인용입니다.
@@ -50,12 +50,20 @@ EKS는 시간당 비용이 나므로 필요할 때 만들고 **같은 날** 지�
 
 ### 노드 1개로 먼저 띄우고 나중에 최종 배포로 바꾸기
 
-비용을 아끼려고 테스트 방식(노드 1대)으로 먼저 띄운 클러스터를 지우지 않고 최종 방식으로 바꿀 수 있습니다.
+지금 클러스터는 2026-10-30부터 테스트 방식(노드 1대, 최소 1)으로 켜져 있습니다. 데모 전날 지우지 않고 최종 방식(노드 **2~3대**, 자동 확장)으로 바꿉니다. 주소는 그대로입니다.
 
-1. 노드를 2대로: `aws eks update-nodegroup-config --cluster-name receipt-flow-dev --nodegroup-name default --scaling-config minSize=1,maxSize=3,desiredSize=2 --profile team-admin --region ap-northeast-2`
-   - `terraform apply -var node_count=2`로는 바뀌지 않습니다. Cluster Autoscaler와 다투지 않도록 Terraform이 만든 뒤의 노드 수(`desired_size`)를 무시하기 때문입니다.
-2. `SCALING=1 bash deploy/deploy.sh` — KEDA·Cluster Autoscaler를 설치하고 같은 ALB·CloudFront 주소로 갱신합니다.
-3. 확인: `kubectl get nodes`, `kubectl -n receipt-flow get hpa,scaledobject`. 일이 없으면 Cluster Autoscaler가 5분 뒤 노드를 1대까지 줄일 수 있습니다(최소 1·최대 3).
+1. 노드 수를 먼저 2대로 (AWS는 노드 수보다 큰 최소값을 거부하므로 이 순서):
+   ```bash
+   aws eks update-nodegroup-config --cluster-name receipt-flow-dev --nodegroup-name default --scaling-config minSize=2,maxSize=3,desiredSize=2 --profile team-admin --region ap-northeast-2
+   ```
+   `terraform apply -var node_count=2`로는 노드 수가 바뀌지 않습니다. Cluster Autoscaler와 다투지 않도록 Terraform이 만든 뒤의 노드 수(`desired_size`)를 무시하기 때문입니다.
+2. Terraform 코드도 최소 2로 맞춥니다 (안 하면 다음 `eks` apply가 최소를 1로 되돌림). `admin_principal_arns`를 빼면 팀원 접근 권한이 지워지므로 그대로 넣습니다. plan은 바뀌는 것이 없어야 합니다.
+   ```bash
+   terraform -chdir=infra/terraform/eks apply -var aws_profile=team-admin -var node_min_count=2 -var 'admin_principal_arns=["arn:aws:iam::431777499129:user/junyoung","arn:aws:iam::431777499129:user/subin","arn:aws:iam::431777499129:user/taehee"]'
+   ```
+3. `SCALING=1 bash deploy/deploy.sh` — KEDA·Cluster Autoscaler를 설치하고 같은 ALB·CloudFront 주소로 갱신합니다.
+4. 확인: `kubectl get nodes`(2대), `kubectl -n receipt-flow get hpa,scaledobject`. 부하가 오면 3대까지 늘고, 끝나면 2대로 돌아옵니다(1대로는 줄지 않음).
+5. 시연 후: 같은 날 정리(아래 2절)하거나, 계속 켜 둘 거면 1번을 `minSize=1,maxSize=3,desiredSize=1`, 2번을 `-var node_min_count=1`로 되돌립니다.
 
 여러 날 켜 두면 하루 약 $5(노드 1대, ALB 포함 추정)가 계속 나갑니다. 켜 둔 기간과 이유를 팀에 알리고, 월요일 비용 메일의 "켜져 있는 시간당 과금 리소스"로 확인합니다.
 **HTTPS:** `deploy.sh` 마지막에 CloudFront(`infra/terraform/edge`)가 새 ALB를 가리키게 바꾸고 `https://….cloudfront.net` 주소를 출력합니다. 휴대폰은 이 주소로 접속합니다. 도메인이 필요 없고, 사용량이 적어 무료 범위입니다.
@@ -79,7 +87,7 @@ terraform -chdir=infra/terraform/eks destroy -var aws_profile=team-admin -var 'a
 
 - **HPA:** api·chat·preprocess, CPU 70% 기준 (`deploy/k8s/*.yaml`). `metrics-server` 애드온은 EKS 스택에 포함.
 - **KEDA:** 분석 큐에 쌓인 메시지 5개당 ocr-worker 1개 (1~5개, `deploy/k8s-scaling/`). KEDA는 자기 역할(`keda-operator`)로 큐 길이만 읽습니다.
-- **Cluster Autoscaler:** Pod가 노드에 안 들어가면 노드를 늘립니다. 2대로 시작해 최소 1·최대 3대 범위에서 조절합니다. 축소 대상이 5분간 유지돼야 하고, 확장 직후에는 기본 10분의 축소 보호 대기도 있어 바로 줄지 않습니다. 노드 그룹 크기는 Terraform이 되돌리지 않습니다.
+- **Cluster Autoscaler:** Pod가 노드에 안 들어가면 노드를 늘립니다. 최종 배포는 최소 2·최대 3대 범위에서 조절합니다(`node_min_count=2`). 축소 대상이 5분간 유지돼야 하고, 확장 직후에는 기본 10분의 축소 보호 대기도 있어 바로 줄지 않습니다. 노드 수는 Terraform이 되돌리지 않지만 최소값(`node_min_count`)은 Terraform이 관리합니다.
 - OCR 워커의 최소값이 1이므로 축소는 KEDA의 `cooldownPeriod`가 아닌 HPA가 담당합니다. 현재 HPA 축소 안정화 시간은 120초입니다.
 - 권한: `infra/terraform/admin/scaling.tf` (역할), 연결: `infra/terraform/eks` (Pod Identity). 역할은 클러스터가 없을 때 비용이 없습니다.
 - 자동 확장 시연에서는 로컬 워커가 큐를 함께 소비하면 EKS 부하가 줄어들 수 있으므로 로컬 워커를 잠시 종료합니다. 실제 Bedrock 비용이 드는 무분별한 부하 생성은 피하고, 부하 검사는 별도 mock 환경에서 진행합니다.
