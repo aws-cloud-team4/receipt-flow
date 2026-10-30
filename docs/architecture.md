@@ -111,7 +111,7 @@ deploy/                    ④ k8s 매니페스트(kustomize), k8s-scaling(KEDA)
 | 파일 | S3 (`raw/` 원본, `incoming/` 보정본), 미리 서명된 URL | 서버를 거치지 않는 업로드 |
 | 비동기 | S3 이벤트 → SQS(+DLQ) → ocr-worker | 분석이 느려도 화면이 막히지 않음, 재시도 |
 | AI | Bedrock: 추출 Sonnet 5.5, 어시스턴트 Haiku 5.5 (global 추론 프로필) | 정확도·속도·비용 비교로 결정 ([model-eval.md](model-eval.md)) |
-| 배포 | EKS(관리형 노드 그룹 t3.medium) + ALB + CloudFront, Pod Identity, Helm, kustomize | 기획서 아키텍처, 키 없이 권한 |
+| 배포 | EKS(관리형 노드 그룹 t3.medium) + ALB + CloudFront, Pod Identity, Helm, kustomize | 서비스 5개가 모두 컨테이너(로컬 검증과 같은 이미지). Lambda는 15분 실행·패키지 용량 제한이 있고 서비스마다 따로 구성해야 함. Fargate 대신 관리형 노드: Pod가 늘 켜져 있어 비용 이점이 작고, 노드 자동 확장을 시연. Pod Identity로 키 없이 권한 |
 | IaC·CI | Terraform(상태 S3), GitHub Actions | 콘솔 수작업 금지 |
 
 ## 6. 현재 구현 상태
@@ -178,9 +178,12 @@ deploy/                    ④ k8s 매니페스트(kustomize), k8s-scaling(KEDA)
 
 ## 7. 남은 일 (우선순위)
 
+**일정:** 코드 수정은 **2026-11-08까지**입니다. 새 기능은 넣지 않고 버그, 어색한 흐름, 챗봇 답변·프롬프트, 모바일 화면만 고칩니다. 그 뒤로는 코드를 바꾸지 않고 데모데이 준비만 합니다.
+
 **발표 전 꼭**
 
-1. **데모 전날 최종 배포 전환**: 켜진 클러스터(노드 1대)를 노드 2~3대(`node_min_count=2`) + `SCALING=1`로 전환([절차](../deploy/README.md#노드-1개로-먼저-띄우고-나중에-최종-배포로-바꾸기)) → 여러 장 올려 ocr-worker·노드가 늘어나는 것 시연.
+1. **모바일 화면 개선** (① 웹, 11/8까지): 시연은 휴대폰 기준입니다. 배포 주소에서 직원·검수 흐름을 휴대폰 폭으로 확인하고 불편한 화면을 고칩니다.
+2. **데모 전날 최종 배포 전환**: 켜진 클러스터(노드 1대)를 노드 2~3대(`node_min_count=2`) + `SCALING=1`로 전환([절차](../deploy/README.md#노드-1개로-먼저-띄우고-나중에-최종-배포로-바꾸기)) → 여러 장 올려 ocr-worker·노드가 늘어나는 것 시연.
 
 **시간이 나면 (선택)**
 
