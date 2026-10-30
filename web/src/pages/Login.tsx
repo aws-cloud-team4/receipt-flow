@@ -207,14 +207,14 @@ export default function Login({ onSignedIn }: { onSignedIn: () => Promise<void> 
           <div className="promo-inner">
             <p className="promo-eyebrow">receiptflow</p>
             <h2>
-              영수증은 찍기만 하세요.
+              영수증은 찍어서 올리세요.
               <br />
-              정리는 AI가 합니다.
+              정리는 AI가 도와드려요.
             </h2>
             <ol className="promo-steps">
-              <li><b>찍어서 올리기</b> 상호명·날짜·금액을 AI가 바로 읽어요.</li>
-              <li><b>질문에 답하기</b> 분석하는 동안 챗봇이 지출 목적과 분류만 물어봐요.</li>
-              <li><b>제출하면 끝</b> 담당자가 확인하고 승인해요.</li>
+              <li><b>찍어서 올리기</b> 테두리를 맞추면 AI가 상호명·일시·금액을 읽어요.</li>
+              <li><b>확인하고 답하기</b> 읽은 내용을 확인하면 AI가 지출 목적과 분류를 추천해요.</li>
+              <li><b>직접 제출하기</b> 최종 확인 후 제출하면 검수 담당자가 승인하거나 보완을 요청해요.</li>
             </ol>
           </div>
         </aside>
