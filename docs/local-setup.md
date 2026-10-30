@@ -223,7 +223,7 @@ git push -u origin web/submit-button-text
 ```
 
 3. PR을 엽니다. GitHub 저장소 화면 위쪽의 **Compare & pull request**를 누르고(GitHub CLI를 설치했다면 `gh pr create --base main --fill`도 됨), PR 템플릿 항목(요약·영역·검사 결과·화면 확인·AWS 영향·워커 재시작)을 채웁니다.
-4. 필수 CI 검사(services·web·terraform·images — images는 서비스별 4개라 GitHub에는 7개로 표시)가 자동으로 돌고, `.github/CODEOWNERS`에 따라 담당자에게 리뷰가 요청됩니다. 수정 요청을 받으면 **같은 브랜치**에서 고쳐 다시 푸시합니다(같은 PR에 추가됨, 새 PR 금지).
+4. 필수 CI 검사(services·web·terraform·images·manifests — images는 이미지별 5개라 GitHub에는 9개로 표시)가 자동으로 돌고, `.github/CODEOWNERS`에 따라 담당자에게 리뷰가 요청됩니다. 수정 요청을 받으면 **같은 브랜치**에서 고쳐 다시 푸시합니다(같은 PR에 추가됨, 새 PR 금지).
 5. CI가 통과하면 작성자가 머지합니다. 다른 영역 파일을 바꿨다면 그 담당자의 승인을 받은 뒤에 머지합니다(AGENTS.md "리뷰"). 작성자가 PR 화면에서 **Squash and merge**를 누릅니다. 팀 저장소의 브랜치는 자동으로 지워집니다.
 6. 내 PC를 최신 `main`으로 맞추고 끝난 브랜치를 지웁니다.
 
