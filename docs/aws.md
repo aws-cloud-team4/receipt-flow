@@ -6,15 +6,8 @@
 ## 처음 설정 (팀원)
 
 1. **IAM 사용자**: 팀원 4명(chahee·junyoung·subin·taehee)의 IAM 사용자는 이미 있습니다. 콘솔 로그인 비밀번호는 IAM 관리자(박준영·장차희)에게 받고, 첫 로그인 때 바꾸고 **MFA를 켭니다**. 루트 계정은 쓰지 않습니다.
-2. **AWS CLI v2**(최신, `aws login` 지원)를 설치하고 프로필 이름은 팀 공통 **`team-admin`**:
-   ```bash
-   aws login --profile team-admin                              # 브라우저에서 본인 IAM 사용자로 로그인 → 마지막 "허용"까지
-   aws configure set region ap-northeast-2 --profile team-admin
-   aws sts get-caller-identity --profile team-admin            # …:user/<본인> 이 나오면 됨 (…:root 이면 다시)
-   ```
-   세션이 만료되면(`Your session has expired`) 1줄째만 다시.
-3. 로컬 실행 설정: `cd services && uv run python scripts/make_env.py --dev-login` ([backend.md](backend.md)).
-4. 배포하는 사람만: docker, kubectl, helm(`winget install Helm.Helm`, PATH 확인).
+2. **CLI 로그인·환경 파일**: 프로필 이름은 팀 공통 **`team-admin`**, 로그인하는 사람은 각자 본인. 명령은 [로컬 개발 시작하기](local-setup.md#3-처음-한-번-및-세션-만료-시-aws-로그인) 3·4단계.
+3. 배포하는 사람만: docker, kubectl, helm(`winget install Helm.Helm`, PATH 확인).
 
 ## 스택 6개 (`infra/terraform/`)
 
@@ -59,7 +52,9 @@ EKS에서는 **Pod Identity**(서비스 계정 ↔ IAM 역할)로 키 없이 권
 
 정말 공유 리소스를 지워야 하면: 팀에 알림 → **IAM 관리자가** `terraform -chdir=infra/terraform/admin apply -var aws_profile=team-admin -var guard_enabled=false` → 작업 → 같은 날 `true`로 되돌림. 다른 팀원은 IAM 변경이 막혀 있어 `admin` 스택을 apply 할 수 없습니다 (IAM 관리자에게 요청). 루트 계정(프로필 `team-infra`)은 CLI·Terraform에 쓰지 않습니다.
 
-## 배포 (EKS) — 두 방식
+## 배포 (EKS)
+
+배포 방식(테스트 1대 / 최종 2~3대 + 자동 확장), 명령 순서, 1대→최종 전환, 정리는 [deploy/README.md](../deploy/README.md)에 있습니다. 여기는 구성·버전만 둡니다.
 
 기본 Kubernetes 버전은 **1.35**이며 표준 지원 종료는 **2027-03-27**입니다. 제어 영역 요금은 표준 지원 **$0.10/h**, 연장 지원 **$0.60/h**이고 EC2·ALB·공인 IPv4 등은 별도입니다. 약 $0.20/h 추정은 표준 지원 버전·노드 1대 기준입니다. [공식 요금](https://aws.amazon.com/eks/pricing/)
 
@@ -86,26 +81,15 @@ KEDA는 `provider: aws`, `identityOwner: keda`로 운영자 자신의 자격 증
 
 근거: [KEDA 호환표](https://keda.sh/docs/2.21/operate/cluster/), [kubectl 버전 정책](https://kubernetes.io/releases/version-skew-policy/), [Autoscaler 버전 정책](https://github.com/kubernetes/autoscaler/blob/master/cluster-autoscaler/README.md), [ALB 설치 가이드](https://kubernetes-sigs.github.io/aws-load-balancer-controller/latest/deploy/installation/), [관리형 노드 그룹 자동 발견](https://docs.aws.amazon.com/eks/latest/userguide/managed-node-groups.html).
 
-| | 테스트·리허설 | 최종 배포 (발표) |
-|---|---|---|
-| 클러스터 | `node_count=1` (기본) | `-var node_count=2 -var node_min_count=2` → 2~3대 |
-| 배포 | `bash deploy/deploy.sh` | `SCALING=1 bash deploy/deploy.sh` |
-| 확장 | HPA(api·chat·preprocess, CPU 70%) | + **Cluster Autoscaler**(노드) + **KEDA**(큐 메시지 5개당 ocr-worker 1개, 1~5) |
-
-로컬·EKS 워커는 같은 공용 큐를 소비하므로 분석 코드·모델 버전을 맞춰야 합니다 ([worker.md](worker.md)). EKS를 꺼도 로컬 워커가 남아 있으면 분석됩니다. EKS 자동 확장만 측정할 때는 로컬 워커를 잠시 종료해 큐 부하가 EKS에서 처리되도록 합니다.
-
-`deploy.sh` 순서: kubeconfig → AWS Load Balancer Controller(Helm) → (최종) KEDA·Cluster Autoscaler → 이미지 5개 빌드·ECR 업로드(태그 = 커밋) → `kubectl apply -k deploy/k8s` (+ `deploy/k8s-scaling`) → ALB 주소 대기 → CloudFront를 새 ALB로 → **https 주소 출력**.
-필요한 도구: aws, docker, kubectl, helm, terraform, timeout. 다시 실행해도 됩니다(제자리 갱신).
-
+- `deploy.sh` 순서: kubeconfig → AWS Load Balancer Controller(Helm) → (최종) KEDA·Cluster Autoscaler → 이미지 5개 빌드·ECR 업로드(태그 = 커밋) → `kubectl apply -k deploy/k8s` (+ `deploy/k8s-scaling`) → ALB 주소 대기 → CloudFront를 새 ALB로 → **https 주소 출력**. 다시 실행해도 됩니다(제자리 갱신).
 - 매니페스트: `deploy/k8s/` (kustomize). 설정은 `config.yaml`(ConfigMap, 비밀값 없음 — 권한은 Pod Identity), 서비스마다 Deployment·Service·(HPA), `ingress.yaml`(ALB 하나, `/api` `/chat` `/preprocess` `/`).
-- **개발자 로그인은 배포 설정에 없음** → 배포에서는 꺼져 있음 (`/api/dev/profiles` 404).
-- **정리**: `bash deploy/teardown.sh`(앱·ALB 먼저 — 남으면 비용·VPC 삭제 실패) → `terraform -chdir=infra/terraform/eks destroy …` → 남은 것 조회(EKS·EC2·LB·NAT·EIP·EBS·ENI·VPC·대상 그룹). CloudFront는 남겨 둠(쉬는 동안 0원, 같은 주소 유지, 클러스터가 없으면 502).
+- **개발자 로그인은 배포 설정에 없음** → 배포에서는 꺼져 있음 (`/api/dev/profiles` 404). CI `manifests` 검사가 확인합니다.
+- 로컬·EKS 워커는 같은 공용 큐를 소비합니다 — 분석 코드·모델 버전 맞추기는 [worker.md](worker.md).
 
 ### CI·자동 배포 (`.github/workflows/`)
 
 - `ci.yml` — PR 필수 검사 5종: **services**(ruff format·check, pytest), **web**(검수 정렬·분석 시간·보완 사유 회귀 검사 + build), **terraform**(fmt, 스택 6개 validate), **images**(배포 이미지 5개 빌드 — 서비스 4개 + 웹(Cognito 기본값), 이미지마다 따로 돌아 GitHub에는 `images (api-service)` 등 5개로 표시), **manifests**(`deploy/k8s` kustomize 렌더링 → kubeconform 스키마 검사(KEDA 객체는 형식만), 배포 설정이 `RF_AUTH_MODE: cognito`·`RF_AI_MODE: bedrock`이고 `RF_DEV_LOGIN`이 없는지 확인). 그래서 `main` 보호의 필수 체크는 9개입니다.
-- `deploy.yml` — `main` 머지(서비스·웹·매니페스트 변경) 또는 수동 실행 → **클러스터가 켜져 있으면** 이미지 빌드·ECR → 롤아웃, 없으면 건너뜀. 팀 저장소는 설정 완료: `admin` 스택의 배포 역할(`github_repo` 기본값 = 팀 저장소) → 출력 `github_deploy_role_arn`이 저장소 Secret `AWS_DEPLOY_ROLE_ARN`에 들어 있고, `eks` 스택이 이 역할에 클러스터 접근 권한(access entry)을 자동으로 줍니다. 순서는 [deploy/README.md](../deploy/README.md#1-배포-시연리허설-날만-팀-합의-후).
-- 노드 1대로 먼저 띄운 클러스터를 최종 방식으로 바꿀 때는 `node_count`가 아니라 노드 그룹 크기를 CLI로 먼저 바꾸고(Terraform은 만든 뒤의 `desired_size`를 무시) `node_min_count=2`로 apply해 최소값을 맞춥니다 — [deploy/README.md](../deploy/README.md#노드-1개로-먼저-띄우고-나중에-최종-배포로-바꾸기).
+- `deploy.yml` — `main` 머지(서비스·웹·매니페스트 변경) 또는 수동 실행 → **클러스터가 켜져 있으면** 이미지 빌드·ECR → 롤아웃, 없으면 건너뜀. 배포 역할(`admin` 스택 `github.tf`)·Secret `AWS_DEPLOY_ROLE_ARN`·클러스터 접근 권한은 설정돼 있습니다 — 주의할 점은 [deploy/README.md](../deploy/README.md#1-배포).
 
 ## 비용
 
@@ -125,9 +109,8 @@ KEDA는 `provider: aws`, `identityOwner: keda`로 운영자 자신의 자격 증
 |---|---|---|
 | `eks apply`: access entry already in use | 클러스터 만든 사람은 자동으로 관리자 → `admin_principal_arns`에 또 넣으면 충돌 | 만드는 사람은 자동 제외 |
 | `docker login`: The stub received bad data | Windows 자격 증명 저장소가 긴 ECR 토큰 거부 | `deploy.sh`가 임시 Docker 설정 + 도우미 없는 PATH로 docker 실행 |
-| Docker 시작 시 `initializing Inference manager ... dockerInference ... The file cannot be accessed by the system` | 이전 실행의 임시 통신 파일을 정리하지 못해 엔진 시작 실패. 단순히 앱 창이 떠 있어도 엔진은 동작하지 않음 | Docker를 완전히 종료한 뒤 `%LOCALAPPDATA%\Docker\run` 경로를 확인하고 해당 임시 통신 폴더만 백업 이름으로 옮겨 재시작. 컨테이너·이미지·볼륨 및 설정 폴더는 삭제하지 않음. `docker info` 응답으로 복구 확인. `deploy.sh`는 엔진 확인을 20초로 제한 |
+| Docker 시작 시 `initializing Inference manager … dockerInference` 또는 `initializing Secrets Engine … engine.sock` + `The file cannot be accessed by the system` | 이전 실행의 임시 소켓 파일이 남아 엔진 시작 실패(앱 창이 떠 있어도 엔진은 안 돎). 강제 종료하면 다음 시작 때 다시 생길 수 있음 | Docker를 완전히 종료 → `%LOCALAPPDATA%\Docker\run`과 `%LOCALAPPDATA%\docker-secrets-engine`을 **둘 다** 백업 이름으로 옮기고 재시작(파일 하나만은 옮겨지지 않음). 컨테이너·이미지·볼륨·설정은 지우지 않음. `docker info` 응답으로 확인. `deploy.sh`는 엔진 확인을 20초로 제한 |
 | `kubectl apply`: x509 certificate signed by unknown authority (webhook) | ALB 컨트롤러를 다시 설치하면 웹훅 인증서가 바뀜 | `keepTLSSecret=true` + 설치 후 컨트롤러 재시작 |
-| Docker 시작 시 `initializing Secrets Engine ... docker-secrets-engine/engine.sock ... The file cannot be accessed by the system` | 위와 같은 원인(남은 임시 소켓). 강제 종료하면 다음 시작 때 같은 오류가 다시 날 수 있음 | Docker를 완전히 종료한 뒤 `%LOCALAPPDATA%\Docker\run`과 `%LOCALAPPDATA%\docker-secrets-engine`을 **둘 다** 백업 이름으로 옮기고 재시작 |
 | `admin apply`: OIDC provider `token.actions.githubusercontent.com` already exists | 계정에 같은 주소의 GitHub OIDC 공급자는 하나만 둘 수 있는데, 예전 프로젝트에서 만든 것이 남아 있었음 | 지우지 않고 `admin` 스택에서 `terraform import 'aws_iam_openid_connect_provider.github[0]' arn:aws:iam::431777499129:oidc-provider/token.actions.githubusercontent.com`로 가져옴. 2026-10-30 처리 완료 |
 | Actions `configure-aws-credentials`: Not authorized to perform sts:AssumeRoleWithWebIdentity | 저장소가 GitHub 고정 subject를 써서 토큰의 `sub`가 `repo:<owner>@<id>/<name>@<id>:…` 형식 | `admin`의 `github_sub_prefix`를 `gh api repos/<owner>/<name>/actions/oidc/customization/sub`의 `sub_claim_prefix` 값으로 맞춤(팀 저장소는 기본값에 들어 있음) |
 | `aws`: Your session has expired | `aws login` 세션 만료 | `aws login --profile team-admin` (브라우저에서 마지막 허용까지) |

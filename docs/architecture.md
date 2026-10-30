@@ -53,7 +53,7 @@ AWS 클라우드 AI 부트캠프 4인 팀 프로젝트이고, 발표일은 2026-
 2. **사진 올리기** — 브라우저가 사진을 긴 변 최대 3200px JPEG로 줄여 S3 `raw/`에 직접 PUT (작은 글씨를 살리려고 보정본 2400px보다 크게 둠).
 3. **테두리 확인** — `POST /preprocess/.../detect`가 네 모서리와 흐림 점수를 돌려주고, 화면(`CornerEditor`)에서 사람이 끌어 맞춘 뒤 `apply` → 서버가 원근 보정해 `incoming/{id}.jpg` 저장.
 4. **분석 시작** — `POST /api/receipts/{id}/uploaded` → `analysis_status=queued`. `incoming/` 저장이 S3 이벤트 → SQS로 갑니다. 화면은 분석이 끝날 때까지 1.5초마다 증빙을 다시 불러옵니다.
-5. **추출** — ocr-worker가 큐에서 꺼내 Bedrock(Sonnet 5.5)에 사진을 보내 **도구 호출로 JSON을 강제**해 받습니다. 정규화·검산·중복 점검 후 `fields`, `needs_check`, `ai_filled`, `checks` 저장, `analysis_status=done`. 추출 구간의 AWS 오류는 수신 횟수 기준 최대 3회 시도 후 `failed`로 저장하고 메시지를 삭제합니다. 오류별 즉시 실패·재시도·DLQ 동작은 [워커 실패 처리](worker.md#실패재시도와-중복-처리)를 따릅니다.
+5. **추출** — ocr-worker가 큐에서 꺼내 Bedrock(Sonnet 5.5)에 사진을 보내 **도구 호출로 JSON을 강제**해 받습니다. 정규화·검산·중복 점검 후 `fields`, `needs_check`, `ai_filled`, `checks` 저장, `analysis_status=done`. 실패하면 `failed` ([워커 실패 처리](worker.md#실패재시도와-중복-처리)).
 6. **AI 어시스턴트** — 웹이 분석 완료를 보면 `POST /chat/.../turn {event: "analysis_done"}`. 결과 카드 → [맞아요]/[직접 수정] → "어떤 일로 쓰신 비용인가요?" + 목적·분류 추천 버튼 → 분류 확인 → `check_submission` → **최종 확인 카드**. 답은 SSE로 흘러나옵니다.
 7. **제출** — 사람이 [제출하기] → `POST /api/receipts/{id}/submit` (필수 칸·오류 검사) → `review_status=submitted`. **AI는 제출하지 않습니다.**
 8. **검수** — 검수 담당자가 `/review`(먼저 제출된 순, "주의" 탭)에서 열고, 서버가 뽑은 **검토 포인트**를 보며 승인 또는 보완 요청(사유 + 다시 볼 칸). 건너뛰기는 맨 뒤로.
