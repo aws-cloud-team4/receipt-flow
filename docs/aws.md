@@ -15,7 +15,7 @@
 
 | 스택 | 만드는 것 | 비용 | 언제 apply |
 |---|---|---|---|
-| `state` | 상태 버킷 (자기 상태만 로컬 — 장차희 PC) | ~0 | 처음 한 번 |
+| `state` | 상태 버킷 (이 스택의 상태만 로컬 파일 — 버킷은 다시 건드릴 일이 없고, 파일을 잃어도 버킷·다른 스택 상태는 그대로) | ~0 | 처음 한 번 |
 | `base` | S3 `receipt-flow-dev-receipts-<계정>`(raw/·incoming/, CORS), SQS `receipt-flow-dev-analysis`(+DLQ, 3회 후), DynamoDB `receipt-flow-dev`(GSI 2), Cognito 사용자 풀·웹 클라이언트·그룹 3개, ECR 저장소 5개 | 사용량만큼 (~0) | 코드가 바뀌었을 때 |
 | `admin` | 서비스별 IAM 정책·Pod Identity 역할, EKS 클러스터·노드 역할, ALB 컨트롤러 역할, 오토스케일러 역할(CA·KEDA), S3 사진 90일 삭제 규칙, GitHub OIDC 배포 역할(기본값 팀 저장소), **팀 금지 정책** | 0 | 권한이 바뀔 때 (IAM 관리자만) |
 | `eks` | VPC(공인 서브넷 2, NAT 없음), EKS 1.35, 관리형 노드 그룹 t3.medium(최소 `node_min_count`(기본 1, 최종 2)·최대 3), 애드온(vpc-cni·coredns·kube-proxy·pod-identity-agent·metrics-server), Pod Identity 연결, 접근 권한 | **약 $0.20/h** | 배포 날만 → 같은 날 destroy |
@@ -111,7 +111,5 @@ KEDA는 `provider: aws`, `identityOwner: keda`로 운영자 자신의 자격 증
 | `docker login`: The stub received bad data | Windows 자격 증명 저장소가 긴 ECR 토큰 거부 | `deploy.sh`가 임시 Docker 설정 + 도우미 없는 PATH로 docker 실행 |
 | Docker 시작 시 `initializing Inference manager … dockerInference` 또는 `initializing Secrets Engine … engine.sock` + `The file cannot be accessed by the system` | 이전 실행의 임시 소켓 파일이 남아 엔진 시작 실패(앱 창이 떠 있어도 엔진은 안 돎). 강제 종료하면 다음 시작 때 다시 생길 수 있음 | Docker를 완전히 종료 → `%LOCALAPPDATA%\Docker\run`과 `%LOCALAPPDATA%\docker-secrets-engine`을 **둘 다** 백업 이름으로 옮기고 재시작(파일 하나만은 옮겨지지 않음). 컨테이너·이미지·볼륨·설정은 지우지 않음. `docker info` 응답으로 확인. `deploy.sh`는 엔진 확인을 20초로 제한 |
 | `kubectl apply`: x509 certificate signed by unknown authority (webhook) | ALB 컨트롤러를 다시 설치하면 웹훅 인증서가 바뀜 | `keepTLSSecret=true` + 설치 후 컨트롤러 재시작 |
-| `admin apply`: OIDC provider `token.actions.githubusercontent.com` already exists | 계정에 같은 주소의 GitHub OIDC 공급자는 하나만 둘 수 있는데, 예전 프로젝트에서 만든 것이 남아 있었음 | 지우지 않고 `admin` 스택에서 `terraform import 'aws_iam_openid_connect_provider.github[0]' arn:aws:iam::431777499129:oidc-provider/token.actions.githubusercontent.com`로 가져옴. 2026-10-30 처리 완료 |
-| Actions `configure-aws-credentials`: Not authorized to perform sts:AssumeRoleWithWebIdentity | 저장소가 GitHub 고정 subject를 써서 토큰의 `sub`가 `repo:<owner>@<id>/<name>@<id>:…` 형식 | `admin`의 `github_sub_prefix`를 `gh api repos/<owner>/<name>/actions/oidc/customization/sub`의 `sub_claim_prefix` 값으로 맞춤(팀 저장소는 기본값에 들어 있음) |
 | `aws`: Your session has expired | `aws login` 세션 만료 | `aws login --profile team-admin` (브라우저에서 마지막 허용까지) |
 | Helm이 "명령을 찾을 수 없음" | winget 설치 후 PATH 미등록 | 사용자 PATH에 Helm 폴더 추가 후 새 터미널 |

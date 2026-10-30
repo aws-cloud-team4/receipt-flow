@@ -82,7 +82,7 @@
 |---|---|
 | 추출 정확도 | 합성 세트 생성 후 `cd services && uv run python scripts/eval/compare_models.py --set set global.anthropic.claude-sonnet-5-5` |
 | 최신 수치·측정 조건 | [model-eval.md](model-eval.md)에서 관리. 현재 프롬프트와 평가 조건의 일치 여부 및 샘플 한계를 함께 확인 |
-| 대화 품질 | `services/tests/test_chat_agent.py`(도구·서버 규칙, 모델 흉내) — 실제 모델로 도는 **대화 평가 세트는 아직 없음** (다음 할 일) |
+| 대화 품질 | `services/tests/test_chat_agent.py`(도구·서버 규칙, 모델 흉내) — 실제 모델로 도는 **대화 평가 세트는 아직 없음** |
 | 비용 | 평가 문서의 조건별 토큰 비용 추정 참고. 실제 청구는 Budgets, 부하 테스트는 꼭 mock |
 
 ## 5. 고칠 때
