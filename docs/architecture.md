@@ -95,7 +95,7 @@ services/                  uv 워크스페이스 (Python 3.13, FastAPI) ─ docs
 infra/terraform/           ④ 스택 6개 ─ docs/aws.md
   state/ base/ admin/ eks/ edge/ ops/
 deploy/                    ④ k8s 매니페스트(kustomize), k8s-scaling(KEDA), deploy.sh·teardown.sh, local/(컨테이너로 로컬 실행)
-.github/workflows/         ④ ci.yml(필수 검사 4개), deploy.yml(main 머지 → 클러스터 있으면 배포)
+.github/workflows/         ④ ci.yml(필수 검사 5종 — GitHub 표시 9개), deploy.yml(main 머지 → 클러스터 있으면 배포)
 .github/CODEOWNERS         경로별 담당자 자동 리뷰 요청 (AGENTS.md 담당 표와 같음)
 .github/pull_request_template.md  PR 설명 항목
 ```
@@ -167,20 +167,20 @@ deploy/                    ④ k8s 매니페스트(kustomize), k8s-scaling(KEDA)
 | 소개 페이지(로그인 전 `/`, 로그인 후에도 `/about` — 왼쪽 메뉴·도움말에서 "서비스 소개", 버튼은 "내 홈으로") — "만든 사람들" 섹션(조장·팀원 4명, 영역·GitHub 프로필, 팀 저장소 바로가기), 상단 메뉴 "AWS 비용" 섹션(팀 사용 금액·남은 금액, 매일 09:00 스냅샷, `GET /api/public/usage`), 아키텍처 그림 가벼운 호버 | ✅ |
 | "정보" 도움말 패널, 왼쪽 메뉴·로고 아래 막대, 모든 화면 폭(375~1920px) 점검 | ✅ |
 | 로컬 개발(공유 AWS), 개발자 로그인(테스트 계정 10개, 로컬 전용), 팀원용 `.env` 생성 스크립트, 워커 없이 실행(`WORKER=0`) | ✅ |
-| CI 필수 검사 4개, Terraform 상태 S3, 팀 IAM 금지 정책 | ✅ |
+| CI 필수 검사 5종(services·web·terraform·images·manifests, images는 이미지별 5개라 GitHub에는 9개로 표시), Terraform 상태 S3, 팀 IAM 금지 정책 | ✅ |
 | EKS 1.35 배포·HTTPS·Pod Identity·AI 분석·노드/워커 자동 확장 | ✅ 구성 검증 완료, 상시 운영하지 않음 |
 | main 머지 → 자동 배포 (클러스터가 있을 때) | 🟡 코드 완료, 팀 저장소용 `github_repo` apply·Secret 등록 필요 |
 | 예산 알림($50·$100·$150·예측 초과) + 매주 월요일 9시 비용 메일 | ✅ (받는 사람 메일 구독 확인 필요) |
 
 ### 최신 검증 범위
 
-자동 검증(**2026-10-27**): 백엔드 테스트 **70개**, 웹 회귀 테스트 **11개**, ruff·웹 빌드 통과. 권한 우회 차단, 보완 안내·재제출, 검토 포인트의 `code`·`fields`, 시드 증빙을 모델에 보내지 않는 워커, 보완 요청 항목 합치기·한도 검사를 포함합니다. 보완 요청 작성 화면은 공용 개발 데이터로 383px 폭에서 담기·빼기·사진 경고·미리 보기까지 확인했고(보내기 제외), 1280px 폭은 요소가 패널 밖으로 나가지 않는지만 측정했습니다. 배포 검증(**2026-10-18**): Terraform 형식·설정 검증, 실제 EKS의 HTTPS·Pod Identity·AI 분석·노드 **2→3→2**·OCR 워커 **1→5→1** 확인. 실제 Cognito 사용자로 휴대폰 촬영부터 사람의 제출·승인까지 이어지는 전체 흐름은 미검증입니다.
+자동 검증(**2026-10-30**, `main` 9f1d581): 백엔드 테스트 **70개**, 웹 회귀 테스트 **11개**, ruff·웹 빌드 통과. 권한 우회 차단, 월별 CSV(정산용·전체, 엑셀 수식 차단), 보완 안내·재제출, 검토 포인트의 `code`·`fields`, 시드 증빙을 모델에 보내지 않는 워커, 보완 요청 항목 합치기·한도 검사를 포함합니다. 보완 요청 작성 화면은 공용 개발 데이터로 383px 폭에서 담기·빼기·사진 경고·미리 보기까지 확인했고(보내기 제외), 1280px 폭은 요소가 패널 밖으로 나가지 않는지만 측정했습니다. 배포 검증(**2026-10-18**): Terraform 형식·설정 검증, 실제 EKS의 HTTPS·Pod Identity·AI 분석·노드 **2→3→2**·OCR 워커 **1→5→1** 확인. 실제 Cognito 사용자로 휴대폰 촬영부터 사람의 제출·승인까지 이어지는 전체 흐름은 미검증입니다.
 
 ## 7. 남은 일 (우선순위)
 
 0. **사용자 전체 흐름 검증**: 실제 Cognito 직원·검수 계정으로 휴대폰 촬영 → AI → 사람이 제출 → 사람이 승인하는 전체 흐름은 미검증입니다. 발표 전 확인해야 합니다.
 
-1. **팀 저장소 마무리**: 저장소는 [aws-cloud-team4/receipt-flow](https://github.com/aws-cloud-team4/receipt-flow)(공개, 이력 없이 시작)로 옮겼고 `main` 보호(직접 푸시 금지, CI 7개 필수, 필수 승인 0명 — 다른 영역 파일을 바꾼 PR의 담당자 승인은 AGENTS.md 규칙)·squash 머지·CODEOWNERS 자동 리뷰 요청이 켜져 있습니다. 남은 것: IAM 관리자가 `admin` 스택에 `-var github_repo=aws-cloud-team4/receipt-flow`로 apply → 출력 `github_deploy_role_arn`을 저장소 Secret `AWS_DEPLOY_ROLE_ARN`에 등록(자동 배포), 팀원 메일을 비용 보고에 추가, `state` 스택 상태 파일과 `ops/terraform.tfvars`(받는 메일)는 지금 IAM 관리자 PC 한 곳에만 있으므로 백업·공유 위치 정하기
+1. **팀 저장소 마무리**: 저장소는 [aws-cloud-team4/receipt-flow](https://github.com/aws-cloud-team4/receipt-flow)(공개, 이력 없이 시작)로 옮겼고 `main` 보호(직접 푸시 금지, 필수 CI 검사 5종 = GitHub 체크 9개 — `images (web)`·`manifests`는 보호 설정에 추가 필요, 필수 승인 0명 — 다른 영역 파일을 바꾼 PR의 담당자 승인은 AGENTS.md 규칙)·squash 머지·CODEOWNERS 자동 리뷰 요청이 켜져 있습니다. 남은 것: IAM 관리자가 `admin` 스택에 `-var github_repo=aws-cloud-team4/receipt-flow`로 apply → 출력 `github_deploy_role_arn`을 저장소 Secret `AWS_DEPLOY_ROLE_ARN`에 등록(자동 배포), 팀원 메일을 비용 보고에 추가, `state` 스택 상태 파일과 `ops/terraform.tfvars`(받는 메일)는 지금 IAM 관리자 PC 한 곳에만 있으므로 백업·공유 위치 정하기
 2. **AI 품질**: 대화 평가 세트(시나리오 자동 실행), 합성 영수증 평가의 양식·촬영 조건 확대(기획서 목표: 핵심 필드 90%, 최대 100장)
 3. **화면**: ⓘ 도움말을 화면별 주제로, 검수 상세(진행 표시·단축키·검토 포인트↔칸 강조·승인 되돌리기), 빠른 검색 `Alt+S`
 4. **다듬기**: 사업자번호 체크섬, 오래된 영수증 경고, 다른 직원과의 같은 승인번호(인덱스 필요)

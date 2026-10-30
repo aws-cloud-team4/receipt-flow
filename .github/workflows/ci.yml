@@ -53,7 +53,30 @@ jobs:
     runs-on: ubuntu-24.04
     strategy:
       matrix:
-        service: [api-service, chat-service, preprocess-service, ocr-worker]
+        service: [api-service, chat-service, preprocess-service, ocr-worker, web]
     steps:
       - uses: actions/checkout@v5
-      - run: docker build --build-arg SERVICE=${{ matrix.service }} -t ${{ matrix.service }}:ci services/
+      - if: matrix.service != 'web'
+        run: docker build --build-arg SERVICE=${{ matrix.service }} -t ${{ matrix.service }}:ci services/
+      # Same default as deploy.sh: Cognito login, no dev mode.
+      - if: matrix.service == 'web'
+        run: docker build -t web:ci web/
+
+  manifests:
+    runs-on: ubuntu-24.04
+    env:
+      KUBECONFORM_VERSION: v0.6.7
+    steps:
+      - uses: actions/checkout@v5
+      - run: |
+          curl -sSfL "https://github.com/yannh/kubeconform/releases/download/${KUBECONFORM_VERSION}/kubeconform-linux-amd64.tar.gz" | tar xz -C /usr/local/bin kubeconform
+      - run: kubectl kustomize deploy/k8s > rendered.yaml
+      # KEDA objects have no built-in schema; they are parsed but not schema-checked.
+      - run: kubeconform -strict -summary -ignore-missing-schemas rendered.yaml deploy/k8s-scaling/
+      # Deploy config must stay Cognito + Bedrock: no dev login, no mock worker on the shared queue.
+      - run: |
+          grep -q 'RF_AUTH_MODE: cognito' rendered.yaml
+          grep -q 'RF_AI_MODE: bedrock' rendered.yaml
+          if grep -n 'RF_DEV_LOGIN' rendered.yaml deploy/k8s-scaling/*.yaml; then
+            echo "RF_DEV_LOGIN must not appear in deploy manifests" >&2; exit 1
+          fi

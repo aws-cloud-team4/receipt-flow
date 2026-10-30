@@ -48,10 +48,11 @@
 - **기존 작업 보호:** 미커밋 변경이나 아직 머지하지 않은 작업이 있으면 임의로 덮어쓰기·삭제·초기화·강제 전환하지 않습니다. 기존 작업을 확인하고 필요한 커밋·임시 보관 방법을 작업자와 정한 뒤 진행합니다. 기존 작업을 이어가는 경우에는 해당 브랜치를 사용하며, 최신 `main` 반영 전에도 변경 상태를 확인합니다. 같은 폴더에서 다른 사람이나 에이전트가 작업 중이면 브랜치를 전환하지 않습니다.
 - `<영역>/<짧은-설명>` 브랜치 → PR → (다른 영역 파일을 바꿨으면 그 담당자 리뷰) → 머지 (squash).
 - 커밋 메시지 접두사: `[web]`, `[ai]`, `[api]`, `[infra]`, `[docs]`.
-- PR 전 로컬에서 통과시키고, 필수 CI 검사(services, web, terraform, images)가 통과해야 머지합니다.
+- PR 전 로컬에서 통과시키고, 필수 CI 검사(services, web, terraform, images, manifests)가 통과해야 머지합니다.
   - 백엔드: `cd services && uv run ruff format --check . && uv run ruff check . && uv run pytest`
   - 웹: `cd web && node --test tests/*.test.mjs && npm run build`
   - 인프라: `terraform fmt -recursive infra/terraform`, `validate`, `plan`
+  - 배포 매니페스트: `kubectl kustomize deploy/k8s` (CI는 kubeconform 스키마 검사와 Cognito·Bedrock 설정 확인까지)
 - Terraform "No changes"는 코드와 실제 리소스가 일치한다는 뜻일 뿐, 비용이 안 나간다는 뜻이 아닙니다.
 
 ## 협업 진행
