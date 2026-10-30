@@ -19,6 +19,7 @@ AWS 클라우드 AI 부트캠프 4인 팀 프로젝트이고, 발표일은 2026-
 | [docs/aws.md](aws.md) | Terraform 스택, 리소스·권한·금지 정책, 배포 두 방식, 자동 배포, 비용 보고, 문제 해결 | ④ 인프라 |
 | [README.md](../README.md) | 처음 시작하기(로컬 실행), 테스트 | 처음 받는 사람 |
 | [deploy/README.md](../deploy/README.md) | EKS 배포·전환 명령 순서 | 배포하는 사람 |
+| [docs/production.md](production.md) | 실제 운영으로 옮길 때 할 일(네트워크·보안·데이터 보호·모니터링·환경 분리)과 비용 | ④ 인프라, 발표 준비 |
 | [docs/model-eval.md](model-eval.md) | 현재 모델·최신 평가 수치·평가 방법 | ② AI |
 | [docs/planning/](planning/) | 기획서(.docx)·발표자료(.pptx) | 범위 확인할 때 |
 
@@ -192,6 +193,8 @@ deploy/                    ④ k8s 매니페스트(kustomize), k8s-scaling(KEDA)
 
 범위 밖(기획서 Should/Could, 하지 않음): 알림, 기관별 지출 기준 설정, 사진 위 결과 표시, Athena 분석.
 
+실제 운영으로 옮길 때 바꿔야 할 것(프라이빗 서브넷·NAT, ALB 접근 제한, 데이터 보호, 중복 분석 방지, 모니터링, 환경 분리)과 비용: [production.md](production.md).
+
 ## 8. 꼭 알아야 할 결정과 함정
 
 - **카드 영수증만** (현금·계좌이체·취소/반품 제외). 지출 분류 10개 고정. 카드번호는 찍힌 그대로.
@@ -199,7 +202,7 @@ deploy/                    ④ k8s 매니페스트(kustomize), k8s-scaling(KEDA)
 - **AI는 제출·승인하지 않음.** 사용자가 말하지 않은 값을 넣지 않음. 서버가 AI 답을 검사해 영어·생각 노출·"바꿨다"는 거짓말을 다시 쓰게 함 ([ai.md](ai.md)).
 - **공유 AWS**: 로컬 OCR 워커도 공용 큐의 모든 팀원 사진을 처리합니다. 실행 조건과 수정 절차는 [worker.md](worker.md).
 - **Cost Explorer는 조직 정책(SCP)으로 막혀 있음** → 비용은 AWS Budgets로만 봄. 계정에는 팀이 쓰기 전 금액이 있어 프로젝트 예산은 **2026-10-01부터** 셈 ([aws.md](aws.md#비용)).
-- **EKS·ALB는 시간당 과금** → 켠 날 지움. Terraform "No changes"는 비용이 없다는 뜻이 아님.
+- **EKS·ALB는 시간당 과금** → 2026-10-30부터 노드 1대로 계속 켜 둠(하루 약 $5). Terraform "No changes"는 비용이 없다는 뜻이 아님.
 - Windows에서 배포할 때 생기는 문제(ECR 로그인, ALB 웹훅 인증서)는 `deploy.sh`가 처리 ([aws.md](aws.md#문제-해결)).
 
 ## 9. 용어
