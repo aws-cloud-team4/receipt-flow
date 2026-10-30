@@ -103,7 +103,7 @@ KEDA는 `provider: aws`, `identityOwner: keda`로 운영자 자신의 자격 증
 
 ### CI·자동 배포 (`.github/workflows/`)
 
-- `ci.yml` — PR 필수 검사 4개: **services**(ruff format·check, pytest), **web**(검수 정렬·분석 시간·보완 사유 회귀 검사 + build), **terraform**(fmt, 스택 6개 validate), **images**(서비스 이미지 빌드).
+- `ci.yml` — PR 필수 검사 4개: **services**(ruff format·check, pytest), **web**(검수 정렬·분석 시간·보완 사유 회귀 검사 + build), **terraform**(fmt, 스택 6개 validate), **images**(서비스 4개 이미지 빌드 — 서비스마다 따로 돌아 GitHub에는 `images (api-service)` 등 4개로 표시). 그래서 `main` 보호의 필수 체크는 7개입니다.
 - `deploy.yml` — `main` 머지(서비스·웹·매니페스트 변경) 또는 수동 실행 → **클러스터가 켜져 있으면** 이미지 빌드·ECR → 롤아웃, 없으면 건너뜀. 켜려면: `admin` 스택에 `-var github_repo=<owner/name>` apply → 출력 `github_deploy_role_arn`을 저장소 Secret `AWS_DEPLOY_ROLE_ARN`에. (팀 저장소 `aws-cloud-team4/receipt-flow` 기준으로 아직 미설정 — IAM 관리자 작업)
 
 ## 비용
