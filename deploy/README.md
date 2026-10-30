@@ -38,8 +38,29 @@ EKS는 시간당 비용이 나므로 필요할 때 만들고 **같은 날** 지�
 | 3. EKS 클러스터 (약 15분) — 최종 배포는 `-var node_count=2` 추가 | `terraform -chdir=infra/terraform/eks apply -var aws_profile=team-admin -var 'admin_principal_arns=["arn:aws:iam::431777499129:user/<팀원>"]'` |
 | 4. 연결·ALB 컨트롤러·(최종: 자동 확장 설치)·이미지 빌드/업로드·배포·HTTPS 연결·주소 출력 | `bash deploy/deploy.sh` (최종: `SCALING=1 bash deploy/deploy.sh`) |
 
-`deploy.sh`는 다시 실행해도 됩니다 (현재 커밋으로 이미지를 다시 올리고 갱신).
-**자동 배포:** 클러스터가 켜져 있는 동안 `main`에 머지하면 GitHub Actions `deploy`가 새 이미지로 바꿔 줍니다 (클러스터가 없으면 건너뜀). 처음 한 번은 `deploy.sh`로 ALB 컨트롤러·자동 확장·HTTPS를 깔아야 하고, 저장소 Secret `AWS_DEPLOY_ROLE_ARN`이 필요합니다 (`admin` 스택의 `github_repo`를 저장소 이름으로 apply → 출력 `github_deploy_role_arn`). 접속은 끝에 출력되는 **`https://….cloudfront.net` 주소**로 합니다 (휴대폰 카메라는 HTTPS에서만 동작). `http://<ALB 주소>`는 확인용입니다.
+`deploy.sh`는 다시 실행해도 됩니다 (현재 커밋으로 이미지를 다시 올리고 갱신). 접속은 끝에 출력되는 **`https://….cloudfront.net` 주소**로 합니다 (휴대폰 카메라는 HTTPS에서만 동작). `http://<ALB 주소>`는 확인용입니다.
+
+**자동 배포 (GitHub Actions `deploy`):** 클러스터가 켜져 있는 동안 `main`에 서비스·웹·매니페스트 변경이 머지되면 새 이미지로 롤아웃합니다(클러스터가 없으면 건너뜀). 수동 실행은 Actions → deploy → Run workflow. 준비는 한 번만 합니다.
+
+| 순서 | 할 일 | 누가 |
+|---|---|---|
+| 1 | `terraform -chdir=infra/terraform/admin apply -var aws_profile=team-admin -var github_repo=aws-cloud-team4/receipt-flow` → 출력 `github_deploy_role_arn` | IAM 관리자 |
+| 2 | 저장소 Secret `AWS_DEPLOY_ROLE_ARN`에 그 값 등록 (`gh secret set AWS_DEPLOY_ROLE_ARN --repo aws-cloud-team4/receipt-flow`) | 저장소 관리자 |
+| 3 | `eks` 스택 apply — `admin` 출력의 배포 역할을 클러스터 접근 권한에 **자동으로** 넣습니다(`admin_principal_arns`에 적지 않음). 1번보다 먼저 만든 클러스터면 `eks` apply를 한 번 더 | 배포하는 사람 |
+| 4 | 클러스터를 새로 만들면 `deploy.sh`를 먼저 한 번 (ALB 컨트롤러·자동 확장·HTTPS는 Actions가 설치하지 않음) | 배포하는 사람 |
+
+Actions는 `demo` 환경으로 돌고 역할은 그 환경과 `main`에서만 받을 수 있습니다. CloudFront는 바꾸지 않습니다(ALB가 그대로라 주소도 그대로).
+
+### 노드 1개로 먼저 띄우고 나중에 최종 배포로 바꾸기
+
+비용을 아끼려고 테스트 방식(노드 1대)으로 먼저 띄운 클러스터를 지우지 않고 최종 방식으로 바꿀 수 있습니다.
+
+1. 노드를 2대로: `aws eks update-nodegroup-config --cluster-name receipt-flow-dev --nodegroup-name default --scaling-config minSize=1,maxSize=3,desiredSize=2 --profile team-admin --region ap-northeast-2`
+   - `terraform apply -var node_count=2`로는 바뀌지 않습니다. Cluster Autoscaler와 다투지 않도록 Terraform이 만든 뒤의 노드 수(`desired_size`)를 무시하기 때문입니다.
+2. `SCALING=1 bash deploy/deploy.sh` — KEDA·Cluster Autoscaler를 설치하고 같은 ALB·CloudFront 주소로 갱신합니다.
+3. 확인: `kubectl get nodes`, `kubectl -n receipt-flow get hpa,scaledobject`. 일이 없으면 Cluster Autoscaler가 5분 뒤 노드를 1대까지 줄일 수 있습니다(최소 1·최대 3).
+
+여러 날 켜 두면 하루 약 $5(노드 1대, ALB 포함 추정)가 계속 나갑니다. 켜 둔 기간과 이유를 팀에 알리고, 월요일 비용 메일의 "켜져 있는 시간당 과금 리소스"로 확인합니다.
 **HTTPS:** `deploy.sh` 마지막에 CloudFront(`infra/terraform/edge`)가 새 ALB를 가리키게 바꾸고 `https://….cloudfront.net` 주소를 출력합니다. 휴대폰은 이 주소로 접속합니다. 도메인이 필요 없고, 사용량이 적어 무료 범위입니다.
 CloudFront는 정리 때 지우지 않습니다 — 켜 둬도 비용이 없고 다음 배포에도 **같은 주소**를 씁니다 (클러스터가 없을 때는 502).
 S3 업로드 허용 주소에 ALB·CloudFront 주소 패턴이 들어 있어 따로 고칠 것이 없습니다.

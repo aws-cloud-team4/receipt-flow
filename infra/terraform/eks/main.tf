@@ -48,7 +48,7 @@ variable "node_count" {
 }
 
 variable "admin_principal_arns" {
-  description = "IAM users/roles that get cluster-admin via EKS access entries (team members, CI role)."
+  description = "IAM users that get cluster-admin via EKS access entries (team members). The admin stack's GitHub deploy role is added automatically."
   type        = list(string)
   default     = []
 }
@@ -79,6 +79,9 @@ locals {
   name  = "receipt-flow-dev"
   roles = data.terraform_remote_state.admin.outputs
   azs   = slice(data.aws_availability_zones.available.names, 0, 2)
+  # GitHub Actions deploy role (admin stack, only when github_repo is set) runs kubectl too
+  github_deploy_role = try(local.roles.github_deploy_role_arn, null)
+  cluster_admins     = concat(var.admin_principal_arns, local.github_deploy_role == null ? [] : [local.github_deploy_role])
   # namespace/service-account → IAM role (EKS Pod Identity)
   pod_roles = merge(
     { for svc, arn in local.roles.service_role_arns : svc => { namespace = "receipt-flow", role = arn } },
@@ -195,7 +198,7 @@ data "aws_caller_identity" "current" {}
 # Whoever creates the cluster already gets admin (bootstrap_cluster_creator_admin_permissions),
 # so they are skipped here; adding them twice fails with "access entry already in use".
 resource "aws_eks_access_entry" "admin" {
-  for_each      = toset([for arn in var.admin_principal_arns : arn if arn != data.aws_caller_identity.current.arn])
+  for_each      = toset([for arn in local.cluster_admins : arn if arn != data.aws_caller_identity.current.arn])
   cluster_name  = aws_eks_cluster.main.name
   principal_arn = each.value
 }
