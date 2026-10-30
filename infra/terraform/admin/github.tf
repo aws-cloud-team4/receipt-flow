@@ -65,6 +65,6 @@ resource "aws_iam_role_policy" "github_deploy" {
 }
 
 output "github_deploy_role_arn" {
-  description = "Put in the repo secret AWS_DEPLOY_ROLE_ARN and in eks admin_principal_arns."
+  description = "Put in the repo secret AWS_DEPLOY_ROLE_ARN. The eks stack gives it cluster access automatically."
   value       = one(aws_iam_role.github_deploy[*].arn)
 }
