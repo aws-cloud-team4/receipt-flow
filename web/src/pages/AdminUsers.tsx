@@ -33,6 +33,46 @@ export default function AdminUsers({ me }: { me: Me }) {
   }
 
   const isMe = (a: Account) => a.sub === me.sub || (a.email ?? "").toLowerCase() === me.email.toLowerCase();
+
+  // Row buttons, shared by the table and the phone cards.
+  const actions = (a: Account) => (
+    <>
+      <button className="btn btn-ghost btn-sm" onClick={() => setForm({ mode: "edit", account: a })}>수정</button>
+      <button className="btn btn-ghost btn-sm" disabled={busy !== null}
+        onClick={() => run(`pw-${a.username}`, async () => {
+          const r = await admin.resetPassword(a.username);
+          setSecret({ who: a.name ?? a.email ?? a.username, password: r.temporary_password, created: false });
+          await load();
+        })}>
+        임시 비밀번호
+      </button>
+      {!isMe(a) && (
+        <button className={`btn btn-sm ${a.enabled ? "btn-danger" : "btn-ghost"}`} disabled={busy !== null}
+          onClick={() => run(`en-${a.username}`, async () => {
+            await admin.setEnabled(a.username, !a.enabled);
+            await load();
+          })}>
+          {a.enabled ? "사용 중지" : "다시 사용"}
+        </button>
+      )}
+      {!isMe(a) && (confirmDelete === a.username ? (
+        <>
+          <span className="small">계정을 영구 삭제할까요?</span>
+          <button className="btn btn-danger btn-sm" disabled={busy !== null}
+            onClick={() => run(`del-${a.username}`, async () => {
+              await admin.deleteUser(a.username);
+              setConfirmDelete(null);
+              await load();
+            })}>
+            삭제
+          </button>
+          <button className="btn btn-ghost btn-sm" onClick={() => setConfirmDelete(null)}>취소</button>
+        </>
+      ) : (
+        <button className="btn btn-ghost btn-sm" onClick={() => setConfirmDelete(a.username)}>삭제</button>
+      ))}
+    </>
+  );
   const pending = (items ?? []).filter((a) => a.enabled && a.status === "FORCE_CHANGE_PASSWORD").length;
 
   return (
@@ -50,8 +90,9 @@ export default function AdminUsers({ me }: { me: Me }) {
         {!items ? <div className="empty">불러오는 중…</div> : items.length === 0 ? (
           <div className="empty">계정이 없어요.</div>
         ) : (
+          <>
           <div className="table-wrap">
-            <table className="table">
+            <table className="table admin-table">
               <thead>
                 <tr>
                   <th>이름</th><th>이메일</th><th>사번</th><th>부서</th><th>직급</th><th>역할</th><th>상태</th><th />
@@ -67,47 +108,30 @@ export default function AdminUsers({ me }: { me: Me }) {
                     <td>{a.position ?? "—"}</td>
                     <td><span className={`role-pill ${a.role}`}>{a.role_label}</span></td>
                     <td className="small">{statusLabel(a)}</td>
-                    <td className="row-actions">
-                      <button className="btn btn-ghost btn-sm" onClick={() => setForm({ mode: "edit", account: a })}>수정</button>
-                      <button className="btn btn-ghost btn-sm" disabled={busy !== null}
-                        onClick={() => run(`pw-${a.username}`, async () => {
-                          const r = await admin.resetPassword(a.username);
-                          setSecret({ who: a.name ?? a.email ?? a.username, password: r.temporary_password, created: false });
-                          await load();
-                        })}>
-                        임시 비밀번호
-                      </button>
-                      {!isMe(a) && (
-                        <button className={`btn btn-sm ${a.enabled ? "btn-danger" : "btn-ghost"}`} disabled={busy !== null}
-                          onClick={() => run(`en-${a.username}`, async () => {
-                            await admin.setEnabled(a.username, !a.enabled);
-                            await load();
-                          })}>
-                          {a.enabled ? "사용 중지" : "다시 사용"}
-                        </button>
-                      )}
-                      {!isMe(a) && (confirmDelete === a.username ? (
-                        <>
-                          <span className="small">계정을 영구 삭제할까요?</span>
-                          <button className="btn btn-danger btn-sm" disabled={busy !== null}
-                            onClick={() => run(`del-${a.username}`, async () => {
-                              await admin.deleteUser(a.username);
-                              setConfirmDelete(null);
-                              await load();
-                            })}>
-                            삭제
-                          </button>
-                          <button className="btn btn-ghost btn-sm" onClick={() => setConfirmDelete(null)}>취소</button>
-                        </>
-                      ) : (
-                        <button className="btn btn-ghost btn-sm" onClick={() => setConfirmDelete(a.username)}>삭제</button>
-                      ))}
-                    </td>
+                    <td className="row-actions">{actions(a)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
+          {/* phones: the same accounts as cards (base.css swaps them in) */}
+          <div className="cards">
+            {items.map((a) => (
+              <div key={a.username} className={`card-row admin-card${a.enabled ? "" : " muted-row"}`}>
+                <div className="main">
+                  <div className="title">{a.name ?? "—"}{isMe(a) && <span className="muted small"> (나)</span>}</div>
+                  <div className="muted small">{a.email}</div>
+                  <div className="muted small">{[a.employee_no, a.department, a.position].filter(Boolean).join(" · ")}</div>
+                  <div className="admin-card-meta">
+                    <span className={`role-pill ${a.role}`}>{a.role_label}</span>
+                    <span className="small">{statusLabel(a)}</span>
+                  </div>
+                  <div className="admin-card-actions">{actions(a)}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+          </>
         )}
       </section>
 

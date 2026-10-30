@@ -28,3 +28,6 @@
 .request-chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .request-preview { display: grid; gap: 6px; }
 .request-preview .bubble { max-width: 100%; }
+
+/* scrolled into view on phones: clear the sticky top bar */
+.change-request { scroll-margin-top: 106px; }

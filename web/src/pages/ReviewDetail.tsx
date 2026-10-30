@@ -1,5 +1,5 @@
 import { analysisSeconds } from "../analysisTime";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { api, ApiError, type ChatMessage, type FieldKey, type Me, type Receipt } from "../api";
 import { InfoLink } from "../components/Help";
@@ -27,6 +27,7 @@ export default function ReviewDetail({ me }: { me: Me }) {
   const [items, setItems] = useState<RequestItem[]>([]);
   const [note, setNote] = useState("");
   const [asking, setAsking] = useState(false);
+  const composeRef = useRef<HTMLElement>(null);
   const [busy, setBusy] = useState(false);
   const [chat, setChat] = useState<ChatMessage[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -196,7 +197,7 @@ export default function ReviewDetail({ me }: { me: Me }) {
               </dl>
             </section>
             {reviewing && asking && (
-              <section className="panel panel-body stack change-request" aria-label="보완 요청 작성">
+              <section ref={composeRef} className="panel panel-body stack change-request" aria-label="보완 요청 작성">
                 <h2>보완 요청 작성</h2>
                 <p className="muted small">
                   검토 포인트의 [요청에 담기]나 증빙 정보 칸 옆 [수정 요청]을 누르면 요청 항목이 담겨요.
@@ -277,7 +278,13 @@ export default function ReviewDetail({ me }: { me: Me }) {
               <>
                 <button className="btn btn-ghost btn-lg" disabled={busy} onClick={later}
                   title="판단을 미루고 다음 건으로 — 검토 순서의 맨 뒤로 가요">건너뛰기</button>
-                <button className="btn btn-danger btn-lg" onClick={() => setAsking(true)}>보완 요청</button>
+                <button className="btn btn-danger btn-lg" onClick={() => {
+                  setAsking(true);
+                  // Phones: the form opens far below the photo, so bring it into view (wide screens keep their place).
+                  if (matchMedia("(max-width: 900px)").matches) {
+                    setTimeout(() => composeRef.current?.scrollIntoView({ block: "start" }), 50);
+                  }
+                }}>보완 요청</button>
                 <button className="btn btn-primary btn-lg" disabled={busy} onClick={() => decide("approve")}>승인</button>
               </>
             )}

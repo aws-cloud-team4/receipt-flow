@@ -114,7 +114,7 @@ h1, h2, h3, p { margin: 0; }
 /* wide tables scroll sideways inside their panel instead of running past the page (narrow window, side menu open) */
 .table-wrap { overflow-x: auto; }
 @media (max-width: 720px) {
-  /* swap a table for its card list on phones; tables without one (admin) stay and scroll */
+  /* swap a table for its card list on phones; tables without one stay and scroll */
   .table-wrap:has(~ .cards) { display: none; }
   .cards { display: block; }
 }

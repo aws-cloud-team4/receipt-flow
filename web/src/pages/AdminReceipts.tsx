@@ -66,6 +66,27 @@ export default function AdminReceipts() {
     .filter((r) => !owner || r.owner_name === owner)
     .sort((a, b) => (b.updated_at ?? "").localeCompare(a.updated_at ?? ""));
 
+  // Row buttons, shared by the tables and the phone cards.
+  const receiptActions = (r: Receipt) => confirm === r.id ? (
+    <>
+      <span className="small">영구 삭제할까요?</span>
+      <button className="btn btn-danger btn-sm" disabled={busy} onClick={() => remove(r.id)}>
+        {busy ? "삭제 중…" : "삭제"}
+      </button>
+      <button className="btn btn-ghost btn-sm" disabled={busy} onClick={() => setConfirm(null)}>취소</button>
+    </>
+  ) : (
+    <button className="btn btn-ghost btn-sm" onClick={() => setConfirm(r.id)}>삭제</button>
+  );
+  const logActions = (d: Deletion) => confirm === d.key ? (
+    <>
+      <button className="btn btn-danger btn-sm" disabled={busy} onClick={() => removeLog(d.key)}>지우기</button>
+      <button className="btn btn-ghost btn-sm" onClick={() => setConfirm(null)}>취소</button>
+    </>
+  ) : (
+    <button className="btn btn-ghost btn-sm" onClick={() => setConfirm(d.key)}>지우기</button>
+  );
+
   return (
     <main className="page">
       <div className="page-head">
@@ -117,8 +138,9 @@ export default function AdminReceipts() {
           !deletions ? <div className="empty">불러오는 중…</div> : deletions.length === 0 ? (
             <div className="empty">삭제한 증빙이 없어요.</div>
           ) : (
+            <>
             <div className="table-wrap">
-              <table className="table">
+              <table className="table admin-table">
                 <thead><tr><th>삭제 일시</th><th>삭제한 사람</th><th>제출자</th><th>상호명</th><th className="num">총액</th><th>삭제 전 상태</th><th /></tr></thead>
                 <tbody>
                   {deletions.map((d) => (
@@ -129,27 +151,35 @@ export default function AdminReceipts() {
                       <td>{d.merchant_name ?? "(분석 전)"}</td>
                       <td className="num">{won(d.total_amount)}</td>
                       <td>{d.review_status ? <ReviewChip status={d.review_status} /> : "—"}</td>
-                      <td className="row-actions">
-                        {confirm === d.key ? (
-                          <>
-                            <button className="btn btn-danger btn-sm" disabled={busy} onClick={() => removeLog(d.key)}>지우기</button>
-                            <button className="btn btn-ghost btn-sm" onClick={() => setConfirm(null)}>취소</button>
-                          </>
-                        ) : (
-                          <button className="btn btn-ghost btn-sm" onClick={() => setConfirm(d.key)}>지우기</button>
-                        )}
-                      </td>
+                      <td className="row-actions">{logActions(d)}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
+            <div className="cards">
+              {deletions.map((d) => (
+                <div key={d.key} className="card-row admin-card">
+                  <div className="main">
+                    <div className="title">{d.merchant_name ?? "(분석 전)"}</div>
+                    <div className="muted small">제출 {d.owner_name ?? "—"} · 삭제 {d.deleted_by} · {shortDate(d.deleted_at)}</div>
+                    <div className="admin-card-meta">
+                      <span className="amount">{won(d.total_amount)}</span>
+                      {d.review_status && <ReviewChip status={d.review_status} />}
+                    </div>
+                    <div className="admin-card-actions">{logActions(d)}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            </>
           )
         ) : lists[tab] === undefined ? <div className="empty">불러오는 중…</div> : items.length === 0 ? (
           <div className="empty">{REVIEW_LABEL[tab]} 상태의 증빙이 없어요.</div>
         ) : (
+          <>
           <div className="table-wrap">
-            <table className="table">
+            <table className="table admin-table">
               <thead><tr><th>제출자</th><th>상호명</th><th>거래 일시</th><th className="num">총액</th><th>상태</th><th>마지막 변경</th><th /></tr></thead>
               <tbody>
                 {items.map((r) => (
@@ -160,24 +190,30 @@ export default function AdminReceipts() {
                     <td className="num">{won(r.fields.total_amount)}</td>
                     <td><ReviewChip status={r.review_status} /></td>
                     <td className="small muted">{shortDate(r.updated_at)}</td>
-                    <td className="row-actions">
-                      {confirm === r.id ? (
-                        <>
-                          <span className="small">영구 삭제할까요?</span>
-                          <button className="btn btn-danger btn-sm" disabled={busy} onClick={() => remove(r.id)}>
-                            {busy ? "삭제 중…" : "삭제"}
-                          </button>
-                          <button className="btn btn-ghost btn-sm" disabled={busy} onClick={() => setConfirm(null)}>취소</button>
-                        </>
-                      ) : (
-                        <button className="btn btn-ghost btn-sm" onClick={() => setConfirm(r.id)}>삭제</button>
-                      )}
-                    </td>
+                    <td className="row-actions">{receiptActions(r)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
+          {/* phones: the same receipts as cards (base.css swaps them in) */}
+          <div className="cards">
+            {items.map((r) => (
+              <div key={r.id} className="card-row admin-card">
+                <div className="main">
+                  <div className="title">{r.fields.merchant_name ?? "(분석 전)"}</div>
+                  <div className="muted small">{r.owner_name} {r.fields.department ?? ""} · {txDate(r.fields.transaction_at)}</div>
+                  <div className="admin-card-meta">
+                    <span className="amount">{won(r.fields.total_amount)}</span>
+                    <ReviewChip status={r.review_status} />
+                    <span className="small muted">변경 {shortDate(r.updated_at)}</span>
+                  </div>
+                  <div className="admin-card-actions">{receiptActions(r)}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+          </>
         )}
       </section>
     </main>

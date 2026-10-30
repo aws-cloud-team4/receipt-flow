@@ -143,6 +143,8 @@
   .photo.expanded img, .workspace .photo-col .photo.expanded img { max-height: 80vh; }
   .assistant-panel { height: auto; min-height: 0; }
   .assistant-panel .chat-log { max-height: 60vh; min-height: 240px; }
+  /* bigger tap area for the back link above the title */
+  .page-head .back-link { padding: 10px 0; margin: -10px 0 -4px; }
 }
 
 /* final review before submitting (chat card and dialog) */

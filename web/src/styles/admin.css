@@ -35,3 +35,11 @@
 .acc-foot { align-items: center; padding: 14px 22px 18px; }
 .acc-foot .spacer { flex: 1; }
 @media (max-width: 520px) { .role-cards { grid-template-columns: minmax(0, 1fr); } }
+
+/* keep words whole in admin tables (base.css breaks anywhere, which stacked letters in narrow cells); phones get the cards below */
+.admin-table th, .admin-table td { overflow-wrap: normal; white-space: nowrap; }
+/* phone cards for the admin lists: details, then the same buttons as the table row */
+.admin-card { align-items: flex-start; }
+.admin-card.muted-row .title { color: var(--ink-3); }
+.admin-card-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 6px; }
+.admin-card-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 10px; }
