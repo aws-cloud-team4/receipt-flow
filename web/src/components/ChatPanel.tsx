@@ -273,7 +273,12 @@ export default function ChatPanel({ receipt, editable, onFieldsChanged, onEditRe
       {editable ? (
         <form className="chat-input" onSubmit={submit}>
           <input ref={input} value={text} onChange={(e) => setText(e.target.value)} placeholder="AI에게 답하거나 물어보세요"
-            aria-label="AI 어시스턴트에게 보내기" maxLength={500} />
+            aria-label="AI 어시스턴트에게 보내기" maxLength={500}
+            onFocus={(e) => {
+              // Phones: the sticky submit bar and the keyboard can cover the input, so bring it to the middle.
+              const el = e.currentTarget;
+              if (matchMedia("(max-width: 900px)").matches) setTimeout(() => el.scrollIntoView({ block: "center", behavior: "smooth" }), 300);
+            }} />
           <button className="btn btn-blue" disabled={busy || !text.trim()}>보내기</button>
         </form>
       ) : (
