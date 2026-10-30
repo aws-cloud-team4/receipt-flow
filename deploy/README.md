@@ -18,7 +18,7 @@ docker compose -f deploy/local/compose.yaml down
 
 ## 1. 배포
 
-팀 합의 후 만듭니다. EKS는 시간당 비용(약 $0.20/h, 노드 1대 기준)이 나므로 **같은 날** 지우는 것이 원칙입니다(예외: 2026-10-30부터 데모까지 노드 1대로 켜 둠 — 아래 "노드 1개로 먼저 띄우고…"). Kubernetes **1.35**, 도구 버전은 `deploy/versions.sh`에 고정돼 있고 `deploy.sh`가 클러스터·kubectl 버전을 먼저 검사합니다 — 버전을 올리기 전에 [배포 구성](../docs/aws.md#배포-구성)을 확인하세요.
+EKS는 2026-10-30부터 노드 1대로 계속 켜져 있습니다(약 $0.20/h — 아래 "노드 1개로 먼저 띄우고…"). Kubernetes **1.35**, 도구 버전은 `deploy/versions.sh`에 고정돼 있고 `deploy.sh`가 클러스터·kubectl 버전을 먼저 검사합니다 — 버전을 올리기 전에 [배포 구성](../docs/aws.md#배포-구성)을 확인하세요.
 
 두 가지 방식이 있습니다:
 
@@ -51,7 +51,7 @@ docker compose -f deploy/local/compose.yaml down
 
 ### 노드 1개로 먼저 띄우고 나중에 최종 배포로 바꾸기
 
-지금 클러스터는 2026-10-30부터 테스트 방식(노드 1대, 최소 1)으로 켜져 있습니다. 데모 전날 지우지 않고 최종 방식(노드 **2~3대**, 자동 확장)으로 바꿉니다. 주소는 그대로입니다.
+지금 클러스터는 2026-10-30부터 테스트 방식(노드 1대, 최소 1)으로 켜져 있습니다. 데모 전날 최종 방식(노드 **2~3대**, 자동 확장)으로 바꿉니다. 주소는 그대로입니다.
 
 1. 노드 수를 먼저 2대로 (AWS는 노드 수보다 큰 최소값을 거부하므로 이 순서):
    ```bash
@@ -64,20 +64,9 @@ docker compose -f deploy/local/compose.yaml down
    ```
 3. `SCALING=1 bash deploy/deploy.sh` — KEDA·Cluster Autoscaler를 설치하고 같은 ALB·CloudFront 주소로 갱신합니다.
 4. 확인: `kubectl get nodes`(2대), `kubectl -n receipt-flow get hpa,scaledobject`. 부하가 오면 3대까지 늘고, 끝나면 2대로 돌아옵니다(1대로는 줄지 않음).
-5. 시연 후: 같은 날 정리(아래 2절)하거나, 계속 켜 둘 거면 1번을 `minSize=1,maxSize=3,desiredSize=1`, 2번을 `-var node_min_count=1`로 되돌립니다.
+5. 시연 후: 1번을 `minSize=1,maxSize=3,desiredSize=1`, 2번을 `-var node_min_count=1`로 되돌려 노드 1대로 돌아갑니다.
 
-여러 날 켜 두면 하루 약 $5(노드 1대, ALB 포함 추정)가 계속 나갑니다. 켜 둔 기간과 이유를 팀에 알리고, 월요일 비용 메일의 "켜져 있는 시간당 과금 리소스"로 확인합니다.
-
-## 2. 정리 (같은 날)
-
-```bash
-bash deploy/teardown.sh   # 앱과 ALB를 먼저 지운다 — 남으면 비용이 계속 나고 VPC가 안 지워진다
-terraform -chdir=infra/terraform/eks destroy -var aws_profile=team-admin -var 'admin_principal_arns=["arn:aws:iam::431777499129:user/<팀원>"]'
-```
-
-그 뒤 남은 것(EKS·EC2·LB·NAT·EIP·EBS·ENI·VPC·대상 그룹)이 없는지 확인하고 팀에 알립니다. 최종 배포(`SCALING=1`)도 순서는 같습니다 — KEDA·Cluster Autoscaler는 클러스터와 함께 지워집니다. 비용 확인은 [docs/aws.md](../docs/aws.md#비용).
-
-EKS를 지우면 EKS의 ocr-worker도 없어지므로, 분석은 로컬 워커가 맡습니다([worker.md](../docs/worker.md)).
+켜 두는 동안 하루 약 $5(노드 1대, ALB 포함 추정)가 나갑니다. 월요일 비용 메일의 "켜져 있는 시간당 과금 리소스"로 확인합니다([비용](../docs/aws.md#비용)).
 
 ## 자동 확장 (최종 배포)
 

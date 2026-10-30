@@ -1,6 +1,6 @@
 # AWS·배포 — ④ 박준영
 
-계정 `431777499129`, 리전 서울 `ap-northeast-2`. 예산 $200, 2026-11-14까지. **리소스는 Terraform으로만** 만들고, 시간당 과금 리소스(EKS·EC2·ALB·NAT)는 배포·시연 날에만 켜고 같은 날 지웁니다. **예외: 2026-10-30부터 데모까지 EKS를 노드 1대로 켜 둡니다**(하루 약 $5, 데모 전날 최종 방식으로 전환 — [deploy/README.md](../deploy/README.md#노드-1개로-먼저-띄우고-나중에-최종-배포로-바꾸기)).
+계정 `431777499129`, 리전 서울 `ap-northeast-2`. 예산 $200, 2026-11-14까지. **리소스는 Terraform으로만** 만들고, **EKS는 2026-10-30부터 노드 1대로 계속 켜 둡니다**(하루 약 $5, 데모 전날 최종 방식으로 전환 — [deploy/README.md](../deploy/README.md#노드-1개로-먼저-띄우고-나중에-최종-배포로-바꾸기)).
 명령 순서만 필요하면 [deploy/README.md](../deploy/README.md).
 
 ## 처음 설정 (팀원)
@@ -18,7 +18,7 @@
 | `state` | 상태 버킷 (이 스택의 상태만 로컬 파일 — 버킷은 다시 건드릴 일이 없고, 파일을 잃어도 버킷·다른 스택 상태는 그대로) | ~0 | 처음 한 번 |
 | `base` | S3 `receipt-flow-dev-receipts-<계정>`(raw/·incoming/, CORS), SQS `receipt-flow-dev-analysis`(+DLQ, 3회 후), DynamoDB `receipt-flow-dev`(GSI 2), Cognito 사용자 풀·웹 클라이언트·그룹 3개, ECR 저장소 5개 | 사용량만큼 (~0) | 코드가 바뀌었을 때 |
 | `admin` | 서비스별 IAM 정책·Pod Identity 역할, EKS 클러스터·노드 역할, ALB 컨트롤러 역할, 오토스케일러 역할(CA·KEDA), S3 사진 90일 삭제 규칙, GitHub OIDC 배포 역할(기본값 팀 저장소), **팀 금지 정책** | 0 | 권한이 바뀔 때 (IAM 관리자만) |
-| `eks` | VPC(공인 서브넷 2, NAT 없음), EKS 1.35, 관리형 노드 그룹 t3.medium(최소 `node_min_count`(기본 1, 최종 2)·최대 3), 애드온(vpc-cni·coredns·kube-proxy·pod-identity-agent·metrics-server), Pod Identity 연결, 접근 권한 | **약 $0.20/h** | 배포 날만 → 같은 날 destroy |
+| `eks` | VPC(공인 서브넷 2, NAT 없음), EKS 1.35, 관리형 노드 그룹 t3.medium(최소 `node_min_count`(기본 1, 최종 2)·최대 3), 애드온(vpc-cni·coredns·kube-proxy·pod-identity-agent·metrics-server), Pod Identity 연결, 접근 권한 | **약 $0.20/h** | 켜져 있음 (노드 수 바꿀 때) |
 | `edge` | CloudFront(`*.cloudfront.net` HTTPS) → ALB | 쉬는 동안 0 | `deploy.sh`가 자동 |
 | `ops` | 예산 알림, 매주 월요일 비용 메일(Lambda·EventBridge·SNS), SSM 값 | ~0 | 받는 사람이 바뀔 때 |
 
@@ -54,7 +54,7 @@ EKS에서는 **Pod Identity**(서비스 계정 ↔ IAM 역할)로 키 없이 권
 
 ## 배포 (EKS)
 
-배포 방식(테스트 1대 / 최종 2~3대 + 자동 확장), 명령 순서, 1대→최종 전환, 정리는 [deploy/README.md](../deploy/README.md)에 있습니다. 여기는 구성·버전만 둡니다.
+배포 방식(테스트 1대 / 최종 2~3대 + 자동 확장), 명령 순서, 1대→최종 전환은 [deploy/README.md](../deploy/README.md)에 있습니다. 여기는 구성·버전만 둡니다.
 
 기본 Kubernetes 버전은 **1.35**이며 표준 지원 종료는 **2027-03-27**입니다. 제어 영역 요금은 표준 지원 **$0.10/h**, 연장 지원 **$0.60/h**이고 EC2·ALB·공인 IPv4 등은 별도입니다. 약 $0.20/h 추정은 표준 지원 버전·노드 1대 기준입니다. [공식 요금](https://aws.amazon.com/eks/pricing/)
 
