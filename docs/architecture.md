@@ -168,8 +168,8 @@ deploy/                    ④ k8s 매니페스트(kustomize), k8s-scaling(KEDA)
 | "정보" 도움말 패널, 왼쪽 메뉴·로고 아래 막대, 모든 화면 폭(375~1920px) 점검 | ✅ |
 | 로컬 개발(공유 AWS), 개발자 로그인(테스트 계정 10개, 로컬 전용), 팀원용 `.env` 생성 스크립트, 워커 없이 실행(`WORKER=0`) | ✅ |
 | CI 필수 검사 5종(services·web·terraform·images·manifests, images는 이미지별 5개라 GitHub에는 9개로 표시), Terraform 상태 S3, 팀 IAM 금지 정책 | ✅ |
-| EKS 1.35 배포·HTTPS·Pod Identity·AI 분석·노드/워커 자동 확장 | ✅ 구성 검증 완료, 상시 운영하지 않음 |
-| main 머지 → 자동 배포 (클러스터가 있을 때) | 🟡 코드 완료, 팀 저장소용 `github_repo` apply·Secret 등록 필요 |
+| EKS 1.35 배포·HTTPS·Pod Identity·AI 분석·노드/워커 자동 확장 | ✅ 구성 검증 완료. **2026-10-30부터 테스트 방식(노드 1대, 자동 확장 없음)으로 켜져 있음** — 최종 배포 때 그대로 전환([deploy/README.md](../deploy/README.md#노드-1개로-먼저-띄우고-나중에-최종-배포로-바꾸기)) |
+| main 머지 → 자동 배포 (클러스터가 있을 때) | ✅ 팀 저장소 배포 역할·Secret `AWS_DEPLOY_ROLE_ARN` 설정, 2026-10-30 수동 실행으로 롤아웃 확인 |
 | 예산 알림($50·$100·$150·예측 초과) + 매주 월요일 9시 비용 메일 | ✅ (받는 사람 메일 구독 확인 필요) |
 
 ### 최신 검증 범위
@@ -180,11 +180,11 @@ deploy/                    ④ k8s 매니페스트(kustomize), k8s-scaling(KEDA)
 
 0. **사용자 전체 흐름 검증**: 실제 Cognito 직원·검수 계정으로 휴대폰 촬영 → AI → 사람이 제출 → 사람이 승인하는 전체 흐름은 미검증입니다. 발표 전 확인해야 합니다.
 
-1. **팀 저장소 마무리**: 저장소는 [aws-cloud-team4/receipt-flow](https://github.com/aws-cloud-team4/receipt-flow)(공개, 이력 없이 시작)로 옮겼고 `main` 보호(직접 푸시 금지, 필수 CI 검사 5종 = GitHub 체크 9개 모두 필수, 필수 승인 0명 — 다른 영역 파일을 바꾼 PR의 담당자 승인은 AGENTS.md 규칙)·squash 머지·CODEOWNERS 자동 리뷰 요청이 켜져 있습니다. 남은 것: IAM 관리자가 `admin` 스택에 `-var github_repo=aws-cloud-team4/receipt-flow`로 apply → 출력 `github_deploy_role_arn`을 저장소 Secret `AWS_DEPLOY_ROLE_ARN`에 등록(자동 배포), 팀원 메일을 비용 보고에 추가, `state` 스택 상태 파일과 `ops/terraform.tfvars`(받는 메일)는 지금 IAM 관리자 PC 한 곳에만 있으므로 백업·공유 위치 정하기
+1. **팀 저장소 마무리**: 저장소는 [aws-cloud-team4/receipt-flow](https://github.com/aws-cloud-team4/receipt-flow)(공개, 이력 없이 시작)로 옮겼고 `main` 보호(직접 푸시 금지, 필수 CI 검사 5종 = GitHub 체크 9개 모두 필수, 필수 승인 0명 — 다른 영역 파일을 바꾼 PR의 담당자 승인은 AGENTS.md 규칙)·squash 머지·CODEOWNERS 자동 리뷰 요청이 켜져 있습니다. 자동 배포(배포 역할·Secret)도 설정됐습니다. 남은 것: 팀원 메일을 비용 보고에 추가, `state` 스택 상태 파일과 `ops/terraform.tfvars`(받는 메일)는 지금 IAM 관리자 PC 한 곳에만 있으므로 백업·공유 위치 정하기
 2. **AI 품질**: 대화 평가 세트(시나리오 자동 실행), 합성 영수증 평가의 양식·촬영 조건 확대(기획서 목표: 핵심 필드 90%, 최대 100장)
 3. **화면**: ⓘ 도움말을 화면별 주제로, 검수 상세(진행 표시·단축키·검토 포인트↔칸 강조·승인 되돌리기), 빠른 검색 `Alt+S`
 4. **다듬기**: 사업자번호 체크섬, 오래된 영수증 경고, 다른 직원과의 같은 승인번호(인덱스 필요)
-5. **발표 준비**: 최종 배포(`SCALING=1`)로 확장 시연 — 여러 장 올려 ocr-worker·노드가 늘어나는 것 보여 주기
+5. **발표 준비**: 지금 켜진 클러스터(노드 1대)를 최종 배포(노드 2대 + `SCALING=1`)로 전환해 확장 시연 — 여러 장 올려 ocr-worker·노드가 늘어나는 것 보여 주기
 
 범위 밖(기획서 Should/Could, 하지 않음): 알림, 기관별 지출 기준 설정, 사진 위 결과 표시, Athena 분석.
 

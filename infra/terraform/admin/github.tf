@@ -1,13 +1,21 @@
 # GitHub Actions → AWS without long-lived keys. Set github_repo ("owner/name") to enable.
 
 variable "github_repo" {
-  description = "GitHub repository allowed to deploy, e.g. aws-cloud-team4/receipt-flow. Empty = skip."
+  description = "GitHub repository allowed to deploy (owner/name). Empty = no deploy role (an apply with \"\" deletes it)."
   type        = string
-  default     = ""
+  default     = "aws-cloud-team4/receipt-flow"
+}
+
+# The team repo uses GitHub's immutable OIDC subject: sub = "repo:<owner>@<owner id>/<name>@<repo id>:…".
+# Value: gh api repos/<owner>/<name>/actions/oidc/customization/sub → sub_claim_prefix. Empty = plain repo:<owner>/<name>.
+variable "github_sub_prefix" {
+  type    = string
+  default = "repo:aws-cloud-team4@340943354/receipt-flow@1420632042"
 }
 
 locals {
-  github = var.github_repo != "" ? 1 : 0
+  github      = var.github_repo != "" ? 1 : 0
+  github_subs = distinct(compact(["repo:${var.github_repo}", var.github_sub_prefix]))
 }
 
 resource "aws_iam_openid_connect_provider" "github" {
@@ -32,7 +40,7 @@ data "aws_iam_policy_document" "github_trust" {
     condition {
       test     = "StringLike"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = ["repo:${var.github_repo}:ref:refs/heads/main", "repo:${var.github_repo}:environment:demo"]
+      values   = flatten([for p in local.github_subs : ["${p}:ref:refs/heads/main", "${p}:environment:demo"]])
     }
   }
 }
