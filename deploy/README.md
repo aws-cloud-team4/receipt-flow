@@ -1,4 +1,6 @@
-# EKS 배포 절차 (통합·데모 주간에만)
+# EKS 배포 절차
+
+구성·버전·권한·비용·문제 해결은 [docs/aws.md](../docs/aws.md). 이 문서는 명령 순서입니다.
 
 ## 0. 먼저 이 PC에서 컨테이너로 확인 (EKS 생성 없음)
 
@@ -14,13 +16,10 @@ docker compose -f deploy/local/compose.yaml down
 
 `AUTH=dev`는 로컬 검증용 dev 인증 이미지를 빌드합니다. 실제 배포는 기본 Cognito 설정으로 별도 빌드하며 로컬 dev 이미지를 재사용하거나 ECR에 올리지 않습니다.
 
-## 1. 배포 (시연·리허설 날만, 팀 합의 후)
+## 1. 배포
 
-기본 Kubernetes 버전은 **1.35**입니다. 배포 전 [버전·지원 상태](../docs/aws.md#배포-eks--두-방식)를 확인하세요. 표준 지원 종료 전에 버전과 비용을 다시 확인하세요.
+팀 합의 후 만듭니다. EKS는 시간당 비용(약 $0.20/h, 노드 1대 기준)이 나므로 **같은 날** 지우는 것이 원칙입니다(예외: 2026-10-30부터 데모까지 노드 1대로 켜 둠 — 아래 "노드 1개로 먼저 띄우고…"). Kubernetes **1.35**, 도구 버전은 `deploy/versions.sh`에 고정돼 있고 `deploy.sh`가 클러스터·kubectl 버전을 먼저 검사합니다 — 버전을 올리기 전에 [배포 구성](../docs/aws.md#배포-구성)을 확인하세요.
 
-배포 도구 구성은 `deploy/versions.sh`에 고정합니다: ALB 차트 3.6.0, KEDA 차트 2.21.0, Autoscaler 차트 9.59.0·이미지 v1.35.2. `deploy.sh`는 실제 클러스터가 1.35인지, kubectl이 허용 범위(1.34~1.36)인지 먼저 검사합니다. 호환 검토 없이 차트 최신 버전으로 올리지 마세요. [배포 구성과 검증 범위](../docs/aws.md#배포-구성).
-
-EKS는 시간당 비용이 나므로 필요할 때 만들고 **같은 날** 지웁니다(예외: 2026-10-30부터 데모까지 노드 1대로 켜 둠 — 아래 "노드 1개로 먼저 띄우고…"). 기준: 컨트롤 플레인 $0.10/h + t3.medium 1대 + ALB + 공인 IP (약 $0.20/h). NAT 게이트웨이는 쓰지 않습니다 (노드는 공인 서브넷).
 두 가지 방식이 있습니다:
 
 | | 테스트·리허설 | 최종 배포 (발표) |
@@ -38,7 +37,9 @@ EKS는 시간당 비용이 나므로 필요할 때 만들고 **같은 날** 지�
 | 3. EKS 클러스터 (약 15분) — 최종 배포는 `-var node_count=2 -var node_min_count=2` 추가 | `terraform -chdir=infra/terraform/eks apply -var aws_profile=team-admin -var 'admin_principal_arns=["arn:aws:iam::431777499129:user/<팀원>"]'` |
 | 4. 연결·ALB 컨트롤러·(최종: 자동 확장 설치)·이미지 빌드/업로드·배포·HTTPS 연결·주소 출력 | `bash deploy/deploy.sh` (최종: `SCALING=1 bash deploy/deploy.sh`) |
 
-`deploy.sh`는 다시 실행해도 됩니다 (현재 커밋으로 이미지를 다시 올리고 갱신). 접속은 끝에 출력되는 **`https://….cloudfront.net` 주소**로 합니다 (휴대폰 카메라는 HTTPS에서만 동작). `http://<ALB 주소>`는 확인용입니다.
+`deploy.sh`는 다시 실행해도 됩니다 (현재 커밋으로 이미지를 다시 올리고 갱신).
+
+**HTTPS:** `deploy.sh` 마지막에 CloudFront(`infra/terraform/edge`)가 새 ALB를 가리키게 바꾸고 **`https://….cloudfront.net` 주소**를 출력합니다. 휴대폰 카메라는 HTTPS에서만 동작하므로 이 주소로 접속합니다(`http://<ALB 주소>`는 확인용). 도메인이 필요 없고 무료 범위입니다. CloudFront는 정리 때 지우지 않아 다음 배포에도 **같은 주소**를 씁니다(클러스터가 없을 때는 502). S3 업로드 허용 주소에 ALB·CloudFront 주소 패턴이 들어 있어 따로 고칠 것이 없습니다.
 
 **자동 배포 (GitHub Actions `deploy`):** 클러스터가 켜져 있는 동안 `main`에 서비스·웹·매니페스트 변경이 머지되면 새 이미지로 롤아웃합니다(클러스터가 없으면 건너뜀). 수동 실행은 Actions → deploy → Run workflow. **팀 저장소는 설정이 끝나 있습니다**(배포 역할 `receipt-flow-dev-github-deploy`, Secret `AWS_DEPLOY_ROLE_ARN`).
 
@@ -66,9 +67,6 @@ EKS는 시간당 비용이 나므로 필요할 때 만들고 **같은 날** 지�
 5. 시연 후: 같은 날 정리(아래 2절)하거나, 계속 켜 둘 거면 1번을 `minSize=1,maxSize=3,desiredSize=1`, 2번을 `-var node_min_count=1`로 되돌립니다.
 
 여러 날 켜 두면 하루 약 $5(노드 1대, ALB 포함 추정)가 계속 나갑니다. 켜 둔 기간과 이유를 팀에 알리고, 월요일 비용 메일의 "켜져 있는 시간당 과금 리소스"로 확인합니다.
-**HTTPS:** `deploy.sh` 마지막에 CloudFront(`infra/terraform/edge`)가 새 ALB를 가리키게 바꾸고 `https://….cloudfront.net` 주소를 출력합니다. 휴대폰은 이 주소로 접속합니다. 도메인이 필요 없고, 사용량이 적어 무료 범위입니다.
-CloudFront는 정리 때 지우지 않습니다 — 켜 둬도 비용이 없고 다음 배포에도 **같은 주소**를 씁니다 (클러스터가 없을 때는 502).
-S3 업로드 허용 주소에 ALB·CloudFront 주소 패턴이 들어 있어 따로 고칠 것이 없습니다.
 
 ## 2. 정리 (같은 날)
 
@@ -77,11 +75,9 @@ bash deploy/teardown.sh   # 앱과 ALB를 먼저 지운다 — 남으면 비용�
 terraform -chdir=infra/terraform/eks destroy -var aws_profile=team-admin -var 'admin_principal_arns=["arn:aws:iam::431777499129:user/<팀원>"]'
 ```
 
-그 뒤 EC2 콘솔에서 로드밸런서·EBS 볼륨·네트워크 인터페이스가 남지 않았는지 확인하고, 팀에 알립니다.
-`terraform plan`의 "No changes"는 리소스가 없다는 뜻이 아닙니다. 비용은 AWS Budgets로 봅니다 (Cost Explorer는 조직 정책으로 막혀 있음 — 매주 월요일 비용 메일, 바로 보기는 [docs/aws.md](../docs/aws.md#비용)).
-최종 배포(`SCALING=1`)도 정리 순서는 같습니다 — KEDA·Cluster Autoscaler는 클러스터와 함께 지워지고 AWS에 남는 것이 없습니다.
+그 뒤 남은 것(EKS·EC2·LB·NAT·EIP·EBS·ENI·VPC·대상 그룹)이 없는지 확인하고 팀에 알립니다. 최종 배포(`SCALING=1`)도 순서는 같습니다 — KEDA·Cluster Autoscaler는 클러스터와 함께 지워집니다. 비용 확인은 [docs/aws.md](../docs/aws.md#비용).
 
-정리 후 로컬 개발을 이어갈 때는 각자 동일 승인 코드·실제 모델 설정으로 `services/`에서 `bash scripts/dev.sh`를 실행합니다. API가 이미 실행 중이면 별도 터미널에서 `uv run ocr-worker`로 워커만 켭니다. 다른 워커가 남아 있으면 EKS를 꺼도 분석은 계속되고, 모든 워커가 꺼져 있으면 큐에 남은 요청은 워커가 다시 켜질 때 처리됩니다. 배포 코드·모델이 다르면 [워커 버전 전환 절차](../docs/worker.md#ocr공통-코드나-모델을-수정할-때)에 따라 버전을 맞춥니다.
+EKS를 지우면 EKS의 ocr-worker도 없어지므로, 분석은 로컬 워커가 맡습니다([worker.md](../docs/worker.md)).
 
 ## 자동 확장 (최종 배포)
 
