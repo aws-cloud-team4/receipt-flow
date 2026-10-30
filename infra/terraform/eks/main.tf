@@ -47,6 +47,16 @@ variable "node_count" {
   default     = 1
 }
 
+variable "node_min_count" {
+  description = "Fewest nodes the Cluster Autoscaler keeps (max is 3). 2 during the demo so it never shrinks to 1 (the plan is 2-3 nodes)."
+  type        = number
+  default     = 1
+  validation {
+    condition     = var.node_min_count >= 1 && var.node_min_count <= 3
+    error_message = "node_min_count must be 1-3."
+  }
+}
+
 variable "admin_principal_arns" {
   description = "IAM users that get cluster-admin via EKS access entries (team members). The admin stack's GitHub deploy role is added automatically."
   type        = list(string)
@@ -164,7 +174,7 @@ resource "aws_eks_node_group" "default" {
 
   scaling_config {
     desired_size = var.node_count
-    min_size     = 1
+    min_size     = var.node_min_count
     max_size     = 3
   }
 

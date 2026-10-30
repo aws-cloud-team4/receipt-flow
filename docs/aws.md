@@ -1,6 +1,6 @@
 # AWS·배포 — ④ 박준영
 
-계정 `431777499129`, 리전 서울 `ap-northeast-2`. 예산 $200, 2026-11-14까지. **리소스는 Terraform으로만** 만들고, 시간당 과금 리소스(EKS·EC2·ALB·NAT)는 배포·시연 날에만 켜고 같은 날 지웁니다.
+계정 `431777499129`, 리전 서울 `ap-northeast-2`. 예산 $200, 2026-11-14까지. **리소스는 Terraform으로만** 만들고, 시간당 과금 리소스(EKS·EC2·ALB·NAT)는 배포·시연 날에만 켜고 같은 날 지웁니다. **예외: 2026-10-30부터 데모까지 EKS를 노드 1대로 켜 둡니다**(하루 약 $5, 데모 전날 최종 방식으로 전환 — [deploy/README.md](../deploy/README.md#노드-1개로-먼저-띄우고-나중에-최종-배포로-바꾸기)).
 명령 순서만 필요하면 [deploy/README.md](../deploy/README.md).
 
 ## 처음 설정 (팀원)
@@ -25,7 +25,7 @@
 | `state` | 상태 버킷 (자기 상태만 로컬 — 장차희 PC) | ~0 | 처음 한 번 |
 | `base` | S3 `receipt-flow-dev-receipts-<계정>`(raw/·incoming/, CORS), SQS `receipt-flow-dev-analysis`(+DLQ, 3회 후), DynamoDB `receipt-flow-dev`(GSI 2), Cognito 사용자 풀·웹 클라이언트·그룹 3개, ECR 저장소 5개 | 사용량만큼 (~0) | 코드가 바뀌었을 때 |
 | `admin` | 서비스별 IAM 정책·Pod Identity 역할, EKS 클러스터·노드 역할, ALB 컨트롤러 역할, 오토스케일러 역할(CA·KEDA), S3 사진 90일 삭제 규칙, GitHub OIDC 배포 역할(기본값 팀 저장소), **팀 금지 정책** | 0 | 권한이 바뀔 때 (IAM 관리자만) |
-| `eks` | VPC(공인 서브넷 2, NAT 없음), EKS 1.35, 관리형 노드 그룹 t3.medium(최소 1·최대 3), 애드온(vpc-cni·coredns·kube-proxy·pod-identity-agent·metrics-server), Pod Identity 연결, 접근 권한 | **약 $0.20/h** | 배포 날만 → 같은 날 destroy |
+| `eks` | VPC(공인 서브넷 2, NAT 없음), EKS 1.35, 관리형 노드 그룹 t3.medium(최소 `node_min_count`(기본 1, 최종 2)·최대 3), 애드온(vpc-cni·coredns·kube-proxy·pod-identity-agent·metrics-server), Pod Identity 연결, 접근 권한 | **약 $0.20/h** | 배포 날만 → 같은 날 destroy |
 | `edge` | CloudFront(`*.cloudfront.net` HTTPS) → ALB | 쉬는 동안 0 | `deploy.sh`가 자동 |
 | `ops` | 예산 알림, 매주 월요일 비용 메일(Lambda·EventBridge·SNS), SSM 값 | ~0 | 받는 사람이 바뀔 때 |
 
@@ -88,7 +88,7 @@ KEDA는 `provider: aws`, `identityOwner: keda`로 운영자 자신의 자격 증
 
 | | 테스트·리허설 | 최종 배포 (발표) |
 |---|---|---|
-| 클러스터 | `node_count=1` (기본) | `-var node_count=2`, 최대 3 |
+| 클러스터 | `node_count=1` (기본) | `-var node_count=2 -var node_min_count=2` → 2~3대 |
 | 배포 | `bash deploy/deploy.sh` | `SCALING=1 bash deploy/deploy.sh` |
 | 확장 | HPA(api·chat·preprocess, CPU 70%) | + **Cluster Autoscaler**(노드) + **KEDA**(큐 메시지 5개당 ocr-worker 1개, 1~5) |
 
@@ -105,7 +105,7 @@ KEDA는 `provider: aws`, `identityOwner: keda`로 운영자 자신의 자격 증
 
 - `ci.yml` — PR 필수 검사 5종: **services**(ruff format·check, pytest), **web**(검수 정렬·분석 시간·보완 사유 회귀 검사 + build), **terraform**(fmt, 스택 6개 validate), **images**(배포 이미지 5개 빌드 — 서비스 4개 + 웹(Cognito 기본값), 이미지마다 따로 돌아 GitHub에는 `images (api-service)` 등 5개로 표시), **manifests**(`deploy/k8s` kustomize 렌더링 → kubeconform 스키마 검사(KEDA 객체는 형식만), 배포 설정이 `RF_AUTH_MODE: cognito`·`RF_AI_MODE: bedrock`이고 `RF_DEV_LOGIN`이 없는지 확인). 그래서 `main` 보호의 필수 체크는 9개입니다.
 - `deploy.yml` — `main` 머지(서비스·웹·매니페스트 변경) 또는 수동 실행 → **클러스터가 켜져 있으면** 이미지 빌드·ECR → 롤아웃, 없으면 건너뜀. 팀 저장소는 설정 완료: `admin` 스택의 배포 역할(`github_repo` 기본값 = 팀 저장소) → 출력 `github_deploy_role_arn`이 저장소 Secret `AWS_DEPLOY_ROLE_ARN`에 들어 있고, `eks` 스택이 이 역할에 클러스터 접근 권한(access entry)을 자동으로 줍니다. 순서는 [deploy/README.md](../deploy/README.md#1-배포-시연리허설-날만-팀-합의-후).
-- 노드 1대로 먼저 띄운 클러스터를 최종 방식으로 바꿀 때는 `node_count`가 아니라 노드 그룹 크기를 직접 바꿉니다(Terraform은 만든 뒤의 `desired_size`를 무시) — [deploy/README.md](../deploy/README.md#노드-1개로-먼저-띄우고-나중에-최종-배포로-바꾸기).
+- 노드 1대로 먼저 띄운 클러스터를 최종 방식으로 바꿀 때는 `node_count`가 아니라 노드 그룹 크기를 CLI로 먼저 바꾸고(Terraform은 만든 뒤의 `desired_size`를 무시) `node_min_count=2`로 apply해 최소값을 맞춥니다 — [deploy/README.md](../deploy/README.md#노드-1개로-먼저-띄우고-나중에-최종-배포로-바꾸기).
 
 ## 비용
 

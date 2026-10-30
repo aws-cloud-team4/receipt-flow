@@ -49,7 +49,7 @@ cd web && node --test tests/*.test.mjs && npm run build
 |---|---|---|---|
 | `infra/terraform/base` | S3, SQS(+DLQ), DynamoDB, Cognito, ECR | 사용량만큼 (거의 0) | 생성됨 |
 | `infra/terraform/admin` | 서비스별 IAM 정책·Pod Identity 역할, EKS 역할, 이미지 90일 자동 삭제, GitHub OIDC | 무료 | IAM 관리자(박준영·장차희)만 — IAM 변경은 금지 정책으로 막혀 있음 |
-| `infra/terraform/eks` | VPC(NAT 없음), EKS t3.medium — 테스트 1대 / 최종 2~3대(자동 확장), CloudFront HTTPS(`edge`) | 약 $0.20/h + ALB | 통합·데모 주간에만 |
+| `infra/terraform/eks` | VPC(NAT 없음), EKS t3.medium — 테스트 1대 / 최종 2~3대(자동 확장), CloudFront HTTPS(`edge`) | 약 $0.20/h + ALB | **2026-10-30부터 데모까지 노드 1대로 켜져 있음** (https://d287ue1u7s8yrk.cloudfront.net), 데모 전날 최종 방식으로 전환 |
 
 영수증 사진은 S3에서 90일 뒤 자동 삭제됩니다. 배포 절차: [deploy/README.md](deploy/README.md). Bedrock 모델: 영수증 분석 `RF_EXTRACT_MODEL=global.anthropic.claude-sonnet-5-5` (측정 조건별 지연·비용은 평가 문서 참고), 챗봇 답변 정리 `RF_CHAT_MODEL=global.anthropic.claude-haiku-5-5`. 현재 모델·평가 수치: [docs/model-eval.md](docs/model-eval.md).
 
