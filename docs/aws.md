@@ -24,7 +24,7 @@
 |---|---|---|---|
 | `state` | 상태 버킷 (자기 상태만 로컬 — 장차희 PC) | ~0 | 처음 한 번 |
 | `base` | S3 `receipt-flow-dev-receipts-<계정>`(raw/·incoming/, CORS), SQS `receipt-flow-dev-analysis`(+DLQ, 3회 후), DynamoDB `receipt-flow-dev`(GSI 2), Cognito 사용자 풀·웹 클라이언트·그룹 3개, ECR 저장소 5개 | 사용량만큼 (~0) | 코드가 바뀌었을 때 |
-| `admin` | 서비스별 IAM 정책·Pod Identity 역할, EKS 클러스터·노드 역할, ALB 컨트롤러 역할, 오토스케일러 역할(CA·KEDA), S3 사진 90일 삭제 규칙, GitHub OIDC 배포 역할(`github_repo` 설정 시), **팀 금지 정책** | 0 | 권한이 바뀔 때 (IAM 관리자만) |
+| `admin` | 서비스별 IAM 정책·Pod Identity 역할, EKS 클러스터·노드 역할, ALB 컨트롤러 역할, 오토스케일러 역할(CA·KEDA), S3 사진 90일 삭제 규칙, GitHub OIDC 배포 역할(기본값 팀 저장소), **팀 금지 정책** | 0 | 권한이 바뀔 때 (IAM 관리자만) |
 | `eks` | VPC(공인 서브넷 2, NAT 없음), EKS 1.35, 관리형 노드 그룹 t3.medium(최소 1·최대 3), 애드온(vpc-cni·coredns·kube-proxy·pod-identity-agent·metrics-server), Pod Identity 연결, 접근 권한 | **약 $0.20/h** | 배포 날만 → 같은 날 destroy |
 | `edge` | CloudFront(`*.cloudfront.net` HTTPS) → ALB | 쉬는 동안 0 | `deploy.sh`가 자동 |
 | `ops` | 예산 알림, 매주 월요일 비용 메일(Lambda·EventBridge·SNS), SSM 값 | ~0 | 받는 사람이 바뀔 때 |
@@ -104,7 +104,7 @@ KEDA는 `provider: aws`, `identityOwner: keda`로 운영자 자신의 자격 증
 ### CI·자동 배포 (`.github/workflows/`)
 
 - `ci.yml` — PR 필수 검사 5종: **services**(ruff format·check, pytest), **web**(검수 정렬·분석 시간·보완 사유 회귀 검사 + build), **terraform**(fmt, 스택 6개 validate), **images**(배포 이미지 5개 빌드 — 서비스 4개 + 웹(Cognito 기본값), 이미지마다 따로 돌아 GitHub에는 `images (api-service)` 등 5개로 표시), **manifests**(`deploy/k8s` kustomize 렌더링 → kubeconform 스키마 검사(KEDA 객체는 형식만), 배포 설정이 `RF_AUTH_MODE: cognito`·`RF_AI_MODE: bedrock`이고 `RF_DEV_LOGIN`이 없는지 확인). 그래서 `main` 보호의 필수 체크는 9개입니다.
-- `deploy.yml` — `main` 머지(서비스·웹·매니페스트 변경) 또는 수동 실행 → **클러스터가 켜져 있으면** 이미지 빌드·ECR → 롤아웃, 없으면 건너뜀. 켜려면: `admin` 스택에 `-var github_repo=<owner/name>` apply → 출력 `github_deploy_role_arn`을 저장소 Secret `AWS_DEPLOY_ROLE_ARN`에. `eks` 스택이 이 역할에 클러스터 접근 권한(access entry)을 자동으로 줍니다. 순서는 [deploy/README.md](../deploy/README.md#1-배포-시연리허설-날만-팀-합의-후).
+- `deploy.yml` — `main` 머지(서비스·웹·매니페스트 변경) 또는 수동 실행 → **클러스터가 켜져 있으면** 이미지 빌드·ECR → 롤아웃, 없으면 건너뜀. 팀 저장소는 설정 완료: `admin` 스택의 배포 역할(`github_repo` 기본값 = 팀 저장소) → 출력 `github_deploy_role_arn`이 저장소 Secret `AWS_DEPLOY_ROLE_ARN`에 들어 있고, `eks` 스택이 이 역할에 클러스터 접근 권한(access entry)을 자동으로 줍니다. 순서는 [deploy/README.md](../deploy/README.md#1-배포-시연리허설-날만-팀-합의-후).
 - 노드 1대로 먼저 띄운 클러스터를 최종 방식으로 바꿀 때는 `node_count`가 아니라 노드 그룹 크기를 직접 바꿉니다(Terraform은 만든 뒤의 `desired_size`를 무시) — [deploy/README.md](../deploy/README.md#노드-1개로-먼저-띄우고-나중에-최종-배포로-바꾸기).
 
 ## 비용
@@ -127,5 +127,8 @@ KEDA는 `provider: aws`, `identityOwner: keda`로 운영자 자신의 자격 증
 | `docker login`: The stub received bad data | Windows 자격 증명 저장소가 긴 ECR 토큰 거부 | `deploy.sh`가 임시 Docker 설정 + 도우미 없는 PATH로 docker 실행 |
 | Docker 시작 시 `initializing Inference manager ... dockerInference ... The file cannot be accessed by the system` | 이전 실행의 임시 통신 파일을 정리하지 못해 엔진 시작 실패. 단순히 앱 창이 떠 있어도 엔진은 동작하지 않음 | Docker를 완전히 종료한 뒤 `%LOCALAPPDATA%\Docker\run` 경로를 확인하고 해당 임시 통신 폴더만 백업 이름으로 옮겨 재시작. 컨테이너·이미지·볼륨 및 설정 폴더는 삭제하지 않음. `docker info` 응답으로 복구 확인. `deploy.sh`는 엔진 확인을 20초로 제한 |
 | `kubectl apply`: x509 certificate signed by unknown authority (webhook) | ALB 컨트롤러를 다시 설치하면 웹훅 인증서가 바뀜 | `keepTLSSecret=true` + 설치 후 컨트롤러 재시작 |
+| Docker 시작 시 `initializing Secrets Engine ... docker-secrets-engine/engine.sock ... The file cannot be accessed by the system` | 위와 같은 원인(남은 임시 소켓). 강제 종료하면 다음 시작 때 같은 오류가 다시 날 수 있음 | Docker를 완전히 종료한 뒤 `%LOCALAPPDATA%\Docker\run`과 `%LOCALAPPDATA%\docker-secrets-engine`을 **둘 다** 백업 이름으로 옮기고 재시작 |
+| `admin apply`: OIDC provider `token.actions.githubusercontent.com` already exists | 계정에 같은 주소의 GitHub OIDC 공급자는 하나만 둘 수 있는데, 예전 프로젝트에서 만든 것이 남아 있었음 | 지우지 않고 `admin` 스택에서 `terraform import 'aws_iam_openid_connect_provider.github[0]' arn:aws:iam::431777499129:oidc-provider/token.actions.githubusercontent.com`로 가져옴. 2026-10-30 처리 완료 |
+| Actions `configure-aws-credentials`: Not authorized to perform sts:AssumeRoleWithWebIdentity | 저장소가 GitHub 고정 subject를 써서 토큰의 `sub`가 `repo:<owner>@<id>/<name>@<id>:…` 형식 | `admin`의 `github_sub_prefix`를 `gh api repos/<owner>/<name>/actions/oidc/customization/sub`의 `sub_claim_prefix` 값으로 맞춤(팀 저장소는 기본값에 들어 있음) |
 | `aws`: Your session has expired | `aws login` 세션 만료 | `aws login --profile team-admin` (브라우저에서 마지막 허용까지) |
 | Helm이 "명령을 찾을 수 없음" | winget 설치 후 PATH 미등록 | 사용자 PATH에 Helm 폴더 추가 후 새 터미널 |

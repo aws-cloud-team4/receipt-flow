@@ -40,16 +40,13 @@ EKS는 시간당 비용이 나므로 필요할 때 만들고 **같은 날** 지�
 
 `deploy.sh`는 다시 실행해도 됩니다 (현재 커밋으로 이미지를 다시 올리고 갱신). 접속은 끝에 출력되는 **`https://….cloudfront.net` 주소**로 합니다 (휴대폰 카메라는 HTTPS에서만 동작). `http://<ALB 주소>`는 확인용입니다.
 
-**자동 배포 (GitHub Actions `deploy`):** 클러스터가 켜져 있는 동안 `main`에 서비스·웹·매니페스트 변경이 머지되면 새 이미지로 롤아웃합니다(클러스터가 없으면 건너뜀). 수동 실행은 Actions → deploy → Run workflow. 준비는 한 번만 합니다.
+**자동 배포 (GitHub Actions `deploy`):** 클러스터가 켜져 있는 동안 `main`에 서비스·웹·매니페스트 변경이 머지되면 새 이미지로 롤아웃합니다(클러스터가 없으면 건너뜀). 수동 실행은 Actions → deploy → Run workflow. **팀 저장소는 설정이 끝나 있습니다**(배포 역할 `receipt-flow-dev-github-deploy`, Secret `AWS_DEPLOY_ROLE_ARN`).
 
-| 순서 | 할 일 | 누가 |
-|---|---|---|
-| 1 | `terraform -chdir=infra/terraform/admin apply -var aws_profile=team-admin -var github_repo=aws-cloud-team4/receipt-flow` → 출력 `github_deploy_role_arn` | IAM 관리자 |
-| 2 | 저장소 Secret `AWS_DEPLOY_ROLE_ARN`에 그 값 등록 (`gh secret set AWS_DEPLOY_ROLE_ARN --repo aws-cloud-team4/receipt-flow`) | 저장소 관리자 |
-| 3 | `eks` 스택 apply — `admin` 출력의 배포 역할을 클러스터 접근 권한에 **자동으로** 넣습니다(`admin_principal_arns`에 적지 않음). 1번보다 먼저 만든 클러스터면 `eks` apply를 한 번 더 | 배포하는 사람 |
-| 4 | 클러스터를 새로 만들면 `deploy.sh`를 먼저 한 번 (ALB 컨트롤러·자동 확장·HTTPS는 Actions가 설치하지 않음) | 배포하는 사람 |
-
-Actions는 `demo` 환경으로 돌고 역할은 그 환경과 `main`에서만 받을 수 있습니다. CloudFront는 바꾸지 않습니다(ALB가 그대로라 주소도 그대로).
+- 클러스터를 새로 만들면 `deploy.sh`를 먼저 한 번 실행합니다. ALB 컨트롤러·자동 확장·HTTPS는 Actions가 설치하지 않습니다.
+- 배포 역할의 클러스터 접근 권한은 `eks` 스택이 `admin` 출력에서 읽어 **자동으로** 넣습니다(`admin_principal_arns`에 적지 않음).
+- `admin` 스택의 `github_repo`·`github_sub_prefix` 기본값이 팀 저장소입니다. `-var github_repo=""`로 apply하면 배포 역할이 지워집니다.
+- 역할은 `demo` 환경과 `main`에서만 받을 수 있습니다. 팀 저장소는 GitHub의 고정 subject(ID가 붙은 `sub`)를 쓰므로 신뢰 조건에 두 형식을 모두 넣었습니다.
+- CloudFront는 바꾸지 않습니다(ALB가 그대로라 주소도 그대로).
 
 ### 노드 1개로 먼저 띄우고 나중에 최종 배포로 바꾸기
 
