@@ -17,6 +17,7 @@
 - [ ] `cd services && uv run ruff format --check . && uv run ruff check . && uv run pytest`
 - [ ] `cd web && node --test tests/*.test.mjs && npm run build`
 - [ ] `terraform fmt -recursive -check infra/terraform` / `validate` / `plan`
+- [ ] `kubectl kustomize deploy/k8s`
 
 ## 화면 확인
 <!-- 화면 변경이면 375px·1440px 캡처(합성 데이터만). 없으면 "해당 없음" -->

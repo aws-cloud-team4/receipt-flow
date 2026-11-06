@@ -6,11 +6,11 @@
 
 | 필드 | 값 | 바꾸는 쪽 |
 |---|---|---|
-| `analysis_status` | `waiting` → `queued` → `processing` → `done` \| `failed` | api(업로드 완료), ocr-worker |
+| `analysis_status` | `waiting` → `queued` → `processing` → `done` \| `failed` (사진을 다시 올리면 `waiting`, 워커의 AWS 오류 재시도 때 `queued`로 돌아감) | api(업로드 완료·재촬영), ocr-worker |
 | `review_status` | `draft` → `submitted` → `approved` \| `changes_requested` → (수정) → `submitted` | api |
 
 - 직원은 `draft`, `changes_requested` 상태에서만 수정·제출할 수 있다.
-- 담당자는 `submitted` 상태만 승인하거나 보완 요청(사유 필수)할 수 있다.
+- 담당자는 `submitted` 상태만 승인하거나 보완 요청할 수 있다. 사유는 앞뒤 공백을 뺀 1~500자이며, 공백만 보내면 `400 invalid_request`다.
 - 직원은 본인 증빙만, 담당자(`reviewer` 그룹)는 모든 증빙을 조회한다.
 
 ## 필드
@@ -26,7 +26,7 @@
 | `total_amount` 총액 (할인·쿠폰 반영 후 최종 결제금액) | AI | ✅ |
 | `payment_method` 결제수단 (카드사명으로 신용/체크 판단) | AI | |
 | `card_issuer` 카드사 (찍힌 그대로, 예: 토스뱅크·KB국민체크) | AI | |
-| `card_number` 카드번호 (영수증에 찍힌 그대로 저장·표시 — 일부만 찍혔으면 일부, 전체면 전체, 가려진 자리는 `*` 그대로. 앞뒤 공백만 정리) | AI | |
+| `card_number` 카드번호 (영수증에 찍힌 그대로 저장·표시 — 일부만 찍혔으면 일부, 전체면 전체, 가려진 자리는 `*` 그대로. 앞뒤 공백을 지우고 안쪽 연속 공백은 하나로) | AI | |
 | `approval_number` 승인번호 (문자열, 앞자리 0 유지, 공백 제거. 거래·주문·전표번호 아님) | AI | |
 | `category` 지출 분류 (아래 코드) | AI 제안 → 챗봇에서 직원 확인 | ✅ |
 | `purpose` 지출 목적 | 챗봇 | ✅ |
@@ -98,11 +98,12 @@ Cognito 사용자 속성 → ID 토큰 → `GET /api/me`. 직원·담당자 화�
 
 `ai_filled`: AI가 채운 뒤 사람이 아직 손대지 않은 필드 키 목록 (ocr-worker 추출, 챗봇이 답변에서 추정한 분류·목적). 직원이 그 칸을 고치거나 챗봇에서 추천 분류를 직접 고르면 빠진다. 화면은 이 칸에 "AI"/"AI 추천" 표시를 붙인다.
 
-`result_confirmed_at`: 직원이 결과 카드에서 "맞아요"를 누른 시각 (챗봇 `confirm_result`, mock 모드는 챗봇이 직접 기록). 다시 분석하면 `null`로 돌아간다. 화면은 이 값이 있으면 결과 카드 버튼을 숨긴다.
+`result_confirmed_at`: 직원이 결과 카드의 [맞아요]·[수정 완료]를 누른 시각 (서버가 모델 없이 기록). 자유 대화에서 확인하면 도구 `confirm_result`가 기록한다. 다시 분석하면 `null`로 돌아간다. 화면은 이 값이 있으면 결과 카드 버튼을 숨긴다.
 
 `checks`: 자동 점검 결과 목록 `{code, level: "error"|"warn", message}`
-- `amount_mismatch` — 공급가액 + 부가세 ≠ 총액 (세 값이 모두 있을 때만)
-- `late_night` — 22시~06시 거래, `weekend` — 주말 거래
+- `amount_mismatch` (오류) — 공급가액 + 부가세 + 면세금액 ≠ 총액 (공급가액·부가세·총액이 모두 있을 때만, 면세금액이 없으면 0)
+- `bad_date` (오류) — 거래 일시를 날짜로 읽을 수 없음
+- `late_night` — 22시~06시 거래(시각이 있을 때만), `weekend` — 주말 거래
 - `duplicate` — 같은 제출자의 같은 상호·거래일·총액 증빙이 이미 있음
 - `same_approval` — 같은 제출자의 같은 승인번호 증빙이 이미 있음 (다른 직원과의 중복은 승인번호 인덱스가 필요해 아직 미구현)
 
@@ -116,25 +117,25 @@ Cognito 사용자 속성 → ID 토큰 → `GET /api/me`. 직원·담당자 화�
 |---|---|---|
 | `GET /api/me` | 모두 | 프로필 `{sub, email, name, employee_no, department, position, role, role_label}` |
 | `GET /api/meta` | 모두 | `{categories: [{code, label, hint}], departments: [{code, name}], field_labels}` (부서는 필터 선택지) |
-| `POST /api/receipts` | 직원 | 작성 중 증빙 생성 + 원본 업로드 URL(`raw/`) `{receipt, upload: {url, headers}}` |
+| `POST /api/receipts` | 직원 | 작성 중 증빙 생성 + 원본 업로드 URL(`raw/`) `{receipt, upload: {url, method, headers}}` |
 | `POST /api/receipts/{id}/upload-url` | 직원 | 사진 다시 올리기용 원본 업로드 URL 재발급. 다른 영수증일 수 있으므로 **처음부터 다시**: 영수증 칸·지출 목적·분류·결과 확인(`result_confirmed_at`)·확인 필요·AI 표시를 비우고 대화 기록을 지운다. 부서(프로필)와 처리 이력은 남고 이력에 `reuploaded` |
-| `POST /api/receipts/{id}/uploaded` | 직원 | 보정(`apply`)이 끝난 뒤 호출 → `analysis_status=queued` |
+| `POST /api/receipts/{id}/uploaded` | 직원 | 보정(`apply`)이 끝난 뒤 호출 → `waiting`·`failed`이면 `analysis_status=queued` (워커가 이미 가져갔으면 상태를 되돌리지 않음) |
 | `GET /api/receipts` | 직원 | 내 증빙 목록 (최신순, 사진 확정 전 `waiting` 증빙은 제외) |
 | `GET /api/receipts/{id}` | 본인·담당자 | 증빙 상세 + `image_url`(보정본) + `original_url`(원본, 5분 유효) + `history` + `review_points` (아래) |
 | `PATCH /api/receipts/{id}` `{fields: {...}}` | 본인 | 필드 수정. 수정할 수 없는 칸은 `400 unknown_fields` |
-| `POST /api/receipts/{id}/submit` | 본인 | 분석 중(`waiting`·`queued`·`processing`)이면 `409 analysis_pending`, 필수 항목이 비면 `422 missing_fields`, 오류 수준 점검(`level: "error"`, 예: 검산 불일치)이 있으면 `422 check_failed`. 통과하면 제출 |
+| `POST /api/receipts/{id}/submit` | 본인 | 분석 중(`waiting`·`queued`·`processing`)이면 `409 analysis_pending`, 필수 항목이 비면 `422 missing_fields`, 오류 수준 점검(`level: "error"`, 예: 검산 불일치)이 있으면 `422 check_failed`. 통과하면 제출. 이미 제출됐으면 `409 not_editable` |
 | `DELETE /api/receipts/{id}` | 본인 | 작성 중(`review_status=draft`, 한 번도 제출 안 한 것)만 영구 삭제 → `204`. 증빙·대화·처리 이력·사진(원본 `raw/`, 보정본 `incoming/`)을 모두 지운다. 제출·보완 요청·승인된 증빙은 `409 not_deletable`. 분석 중에 지워지면 워커는 그 메시지를 버린다 |
-| `GET /api/review/receipts?status=submitted` | 담당자 | 상태별 목록. 각 항목에 `review_points`. 화면은 먼저 제출된 순(선입선출)으로 보여 주고, 오류·주의가 있는 건은 색·표시로 강조하고, 검수 목록에 **"주의" 탭**을 둔다(웹 주소 `/review?status=flagged`). 실제 API는 `status=submitted` 목록을 받고 웹에서 오류·주의 항목을 필터링한다. API의 허용 상태는 `submitted`·`approved`·`changes_requested`·`draft`이며 `status=flagged`를 API에 보내면 `422`다. 홈의 "주의·오류" 숫자는 이 탭으로 연결 |
-| `POST /api/review/receipts/{id}/approve` | 담당자 | 승인 |
-| `POST /api/review/receipts/{id}/request-changes` `{reason, fields?}` | 담당자 | 보완 요청. `fields`: 다시 봐야 할 칸 (`photo`는 사진 다시 찍기, 목록 밖이면 `400 unknown_fields`). `review_note`·`review_fields`로 저장 |
-| `GET /api/review/export.csv?month=YYYY-MM&status=all\|approved` | 담당자 | 월별 CSV (사번·제출자·직급·상태 + 모든 증빙 칸 + 제출일시·검수자·검수일시·보완 요청 사유). 달은 **거래 일시** 기준, 거래 일시순. `status=all`(기본): 작성 중을 뺀 전체(제출·보완 요청·승인), 파일 이름 `receipts-YYYY-MM.csv`. `status=approved`: 승인 건만(정산용) + 맨 아래 합계 줄(건수, 금액 칸 합), 파일 이름 `receipts-YYYY-MM-approved.csv`. 그 밖의 값은 `400 invalid_request`. 건수 제한 없이 모두 담는다. 엑셀 수식 실행을 막으려고 `= + - @`·탭·줄바꿈으로 시작하는 글자 칸은 앞에 `'`를 붙인다(숫자 칸은 그대로) |
+| `GET /api/review/receipts?status=submitted` | 담당자 | 상태별 목록. 각 항목에 `review_points`. 화면은 먼저 제출된 순(선입선출)으로 보여 주고, 오류·주의가 있는 건은 색·표시로 강조하고, 검수 목록에 **"주의" 탭**을 둔다(웹 주소 `/review?status=flagged`). 실제 API는 `status=submitted` 목록을 받고 웹에서 오류·주의 항목을 필터링한다. API의 허용 상태는 `submitted`·`approved`·`changes_requested`·`draft`이며 `status=flagged`를 API에 보내면 `400 invalid_request`다. `submitted`는 전부 읽고, 나머지 상태는 최근 수정된 순으로 최대 200건만 읽는다. 홈의 "주의·오류" 숫자는 이 탭으로 연결 |
+| `POST /api/review/receipts/{id}/approve` | 담당자 | 승인. 제출 상태가 아니면 `409 not_submitted` |
+| `POST /api/review/receipts/{id}/request-changes` `{reason, fields?}` | 담당자 | 보완 요청. `reason`은 앞뒤 공백을 뺀 1~500자. `fields`: 다시 봐야 할 칸 최대 10개 (`photo`는 사진 다시 찍기, 목록 밖이면 `400 unknown_fields`). `review_note`·`review_fields`로 저장 |
+| `GET /api/review/export.csv?month=YYYY-MM&status=all\|approved` | 담당자 | 월별 CSV (증빙 ID·사번·제출자·직급·상태 + 모든 증빙 칸 + 제출일시·검수자·검수일시·보완 요청 사유). 달은 **거래 일시** 기준, 거래 일시순. `status=all`(기본): 작성 중을 뺀 전체(제출·보완 요청·승인), 파일 이름 `receipts-YYYY-MM.csv`. `status=approved`: 승인 건만(정산용) + 맨 아래 합계 줄(건수, 금액 칸 합), 파일 이름 `receipts-YYYY-MM-approved.csv`. 그 밖의 값은 `400 invalid_request`. 건수 제한 없이 모두 담는다. 엑셀 수식 실행을 막으려고 `= + - @`·탭·줄바꿈으로 시작하는 글자 칸은 앞에 `'`를 붙인다(숫자 칸은 그대로) |
 
 **검토 포인트 `review_points`** — 승인자가 먼저 볼 것을 서버가 규칙으로 뽑은 목록 `[{level: "error"|"warn"|"info", code, text, fields}]`.
 `code`는 포인트 종류, `fields`는 관련 칸 키 목록(없으면 `[]`). 화면은 `code`로 보완 요청 문구를 고르고 `fields`를 고칠 칸으로 쓴다.
 
 | `code` | 내용 | `fields` |
 |---|---|---|
-| `amount_mismatch` · `late_night` · `weekend` · `duplicate` · `same_approval` | 점검 결과 (`checks`와 같은 코드·문구) | `[]` |
+| `amount_mismatch` · `bad_date` · `late_night` · `weekend` · `duplicate` · `same_approval` | 점검 결과 (`checks`와 같은 코드·문구) | `[]` |
 | `unclear_fields` | 흐리게 읽혀 확인 안 된 칸 | 해당 칸 |
 | `analysis_failed` | AI가 읽지 못해(`analysis_status=failed`) 직원이 직접 입력함 | `[]` |
 | `edited_fields` | AI가 읽은 뒤 직원이 직접 입력·수정한 칸 (금액 칸이 있으면 `warn`, 아니면 `info`) | 해당 칸 |
@@ -144,7 +145,7 @@ Cognito 사용자 속성 → ID 토큰 → `GET /api/me`. 직원·담당자 화�
 | `short_purpose` | 지출 목적이 짧음 | `["purpose"]` |
 
 **보완 요청 → 다시 제출**: 직원이 보완 요청된 증빙을 열면 화면이 `event: "changes_requested"`를 보낸다. 서버가 모델 없이
-"담당자 ○○님이 보완을 요청했어요: “사유”"와 고칠 칸 안내를 답하고, 고칠 칸이 있으면 [직접 수정] (사진이면 [다시 찍기])을 붙인다.
+"○○님이 보완을 요청했어요: “사유”"(이름이 없으면 "담당자님이")와 고칠 칸 안내를 답하고, [직접 수정] (사진이면 [다시 찍기])을 붙인다.
 고친 뒤에는 같은 최종 확인 카드를 거쳐 다시 제출한다 (`changes_requested` → `submitted`).
 최초 보완 안내는 하단 [제출하기]로 내용을 확인하고 다시 제출하도록 안내한다. [수정 완료]는 [직접 수정]을 선택한 뒤의 대화 버튼이므로 최초 안내에서 필수 단계처럼 안내하지 않는다.
 
@@ -163,11 +164,11 @@ Cognito 사용자 속성 → ID 토큰 → `GET /api/me`. 직원·담당자 화�
 | `GET /api/admin/options` | 계정 폼 선택지 `{departments: [{code, name, description}], positions, reviewer_department}` |
 | `GET /api/admin/users` | 계정 목록 `{items: [{username, email, name, employee_no, department, position, role, role_label, status, enabled, created_at}]}`. `status`: `FORCE_CHANGE_PASSWORD`(첫 로그인 대기) · `CONFIRMED`(사용 중) 등 Cognito 값 그대로 |
 | `POST /api/admin/users` `{email, name, department, position, role}` | 계정 생성 → `201 {user, temporary_password}`. 사번은 서버가 만든다 (위 규칙). **관리자는 부서 없음** (`department` 무시, 사번은 `ADM`+연도+순번). 이메일은 보내지 않고 임시 비밀번호를 **이 응답에서 한 번만** 돌려준다 (서버에 저장·기록하지 않음). 첫 로그인 때 새 비밀번호를 정한다. 같은 이메일이 있으면 `409 user_exists` |
-| `PATCH /api/admin/users/{username}` `{name?, department?, position?, role?}` | 프로필·역할 수정 → `{user}`. 사번은 바꾸지 않는다. 이미 낸 증빙의 `owner_profile`은 바꾸지 않는다 (제출 당시 기준). 자기 자신의 `admin` 역할은 뺄 수 없다 (`409 self_demote`) |
+| `PATCH /api/admin/users/{username}` `{name?, department?, position?, role?}` | 프로필·역할 수정 → `{user}`. 사번은 바꾸지 않는다. 이미 낸 증빙의 `owner_profile`은 바꾸지 않는다 (제출 당시 기준). 역할을 `admin`으로 바꾸면 있던 부서를 지운다. 자기 자신의 `admin` 역할은 뺄 수 없다 (`409 self_demote`) |
 | `POST /api/admin/users/{username}/temporary-password` | 새 임시 비밀번호 발급 → `{temporary_password}` (한 번만). 다음 로그인 때 새 비밀번호를 정해야 한다 |
 | `POST /api/admin/users/{username}/disable` · `/enable` | 사용 중지 / 다시 사용 → `{user}`. 중지된 계정은 로그인할 수 없고, 낸 증빙은 남는다. 자기 자신은 중지할 수 없다 (`409 self_disable`) |
 | `DELETE /api/admin/users/{username}` | 계정 영구 삭제 → `204` (Cognito에서 지움, 되돌릴 수 없음). 그 사람이 낸 증빙은 남는다 (제출자 이름 그대로). 자기 자신은 지울 수 없다 (`409 self_delete`) |
-| `GET /api/admin/receipts?status=draft\|submitted\|changes_requested\|approved` | 상태별 전체 증빙 (작성 중 포함) `{items}` |
+| `GET /api/admin/receipts?status=draft\|submitted\|changes_requested\|approved` | 상태별 전체 증빙 (작성 중 포함) `{items}`. 최근 수정된 순으로 최대 200건 |
 | `DELETE /api/admin/receipts/{id}` | 상태와 상관없이 영구 삭제 → `204`. 증빙·대화·처리 이력·사진(원본 `raw/`, 보정본 `incoming/`)을 지우고 **삭제 기록**만 남긴다 |
 | `GET /api/admin/deletions` | 삭제 기록 (최신순) `{items: [{key, receipt_id, deleted_at, deleted_by, owner_name, merchant_name, total_amount, review_status}]}` |
 | `DELETE /api/admin/deletions/{key}` · `DELETE /api/admin/deletions` | 삭제 기록 한 건 / 모두 지우기 → `204` (`key`는 목록의 값, URL 인코딩) |
@@ -190,7 +191,7 @@ Cognito 사용자 속성 → ID 토큰 → `GET /api/me`. 직원·담당자 화�
 
 | 메서드 · 경로 | 설명 |
 |---|---|
-| `POST /chat/receipts/{id}/turn` `{message?: string, event?: "start" \| "analysis_done" \| "changes_requested", choice?: {purpose, category}}` | 사용자 말 또는 화면 이벤트에 AI가 답하고, 필요하면 도구로 증빙을 고친다. SSE로 스트리밍. `choice`는 추천 버튼을 누른 것: 모델을 부르지 않고 목적·분류를 바로 저장한다 |
+| `POST /chat/receipts/{id}/turn` `{message?: string, event?: "start" \| "analysis_done" \| "changes_requested", choice?: {purpose, category}}` | 사용자 말 또는 화면 이벤트에 AI가 답하고, 필요하면 도구로 증빙을 고친다. SSE로 스트리밍. `choice`는 추천 버튼을 누른 것: 모델을 부르지 않고 목적·분류를 바로 저장한다. `message` 최대 1000자, `choice.purpose` 1~100자, 목록 밖 분류는 `400 invalid_category`, 제출된 증빙은 `409 not_editable` |
 | `GET /chat/receipts/{id}/messages` | 대화 기록 (`role`: user·assistant만, 이벤트는 제외). assistant 메시지에는 그때 붙인 `choices`·`suggestions`가 있어 새로 열어도 버튼을 다시 보여 준다 |
 
 **AI 어시스턴트 (도구를 쓰는 챗봇, `RF_AI_MODE=bedrock`)** — 모델은 `RF_CHAT_MODEL`.
@@ -214,7 +215,7 @@ Cognito 사용자 속성 → ID 토큰 → `GET /api/me`. 직원·담당자 화�
 - 직원이 카드를 건너뛰고 바로 목적을 말해도 그대로 받는다 (순서를 강제하지 않음).
 - 웹은 분석 중에는 `start`를 보내지 않는다 (분석 중 답이 결과 카드 아래에 남아 지난 메시지처럼 보이므로). 첫 말은 `analysis_done`에서 한다.
 
-SSE 이벤트: `delta` `{text}` → (`tool` `{name, summary}`)* → `done` `{text, choices, suggestions, actions, changed, fields}`.
+SSE 이벤트: `delta` `{text}` → (`tool` `{name, summary}`)* → `done` `{text, slot, choices, suggestions, actions, changed, repeat, finished, fields}`. `slot`은 다음 답으로 채울 칸(모델 대화에서는 `null`), `repeat: true`면 새로 말할 내용이 없어 화면에 줄을 추가하지 않고, `finished`는 mock 대본이 끝났음을 뜻한다.
 `suggestions`: `[{purpose, category, category_label}]` — 누르면 `choice`로 보낸다. 처리 이력에는 `edited` "AI 추천 선택".
 `actions`: `["submit"]`이면 화면이 **최종 확인 카드**(상호·일시·총액·결제수단·분류·목적·부서와 주의 경고)를 [직접 수정]·[제출하기]와 함께 보여 준다. 카드는 그 메시지 바로 아래, 대화 흐름 안에 놓인다 (assistant 메시지에 `actions`가 저장돼 다시 열어도 같은 자리). 버튼은 마지막 카드에만 있고, 이전 카드는 한 줄로 접힌다. 제출한 뒤에는 "제출한 내용"으로 남는다. 아래 버튼 줄의 [제출하기]도 같은 카드를 거친다 (오류가 있으면 제출 불가). `changed`: 도구로 증빙이 바뀌었으면 true (화면이 다시 불러온다).
 
@@ -225,7 +226,7 @@ SSE 이벤트: `delta` `{text}` → (`tool` `{name, summary}`)* → `done` `{tex
 사진 보정은 서버에서 하고, 사람이 그 사이에 테두리를 확인·수정한다.
 
 1. 브라우저가 원본(긴 변 최대 3200px, JPEG 품질 0.92)을 `raw/{id}.jpg`로 올린다.
-2. `POST /preprocess/receipts/{id}/detect` → `{found, corners, width, height, blur_score, blurry, blur_min}`
+2. `POST /preprocess/receipts/{id}/detect` → `{found, corners, width, height, blur_score, blurry, blur_min, elapsed_ms}` (원본이 없으면 `409 not_uploaded`, 읽을 수 없는 이미지는 `422 bad_image`)
    - `corners`: 원본 픽셀 기준 네 점(왼쪽 위·오른쪽 위·오른쪽 아래·왼쪽 아래). 못 찾으면 `found=false`와 가장자리에서 6% 들어온 기본 틀.
    - `blurry`: 흐림 점수(라플라시안 분산, 긴 변 1000px 기준)가 60 미만.
 3. 화면에서 사용자가 모서리를 끌어 맞춘다.
@@ -248,6 +249,9 @@ SSE 이벤트: `delta` `{text}` → (`tool` `{name, summary}`)* → `done` `{tex
 |---|---|---|
 | `RECEIPT#{id}` | `META` | 증빙 본문. `gsi1pk=OWNER#{sub}`, `gsi1sk=created_at`, `gsi2pk=STATUS#{review_status}`, `gsi2sk=updated_at` |
 | `RECEIPT#{id}` | `EVENT#{ts}` | 처리 이력 `{actor, action, note}` |
-| `RECEIPT#{id}` | `MSG#{ts}` | 챗봇 대화 `{role, text}` |
+| `RECEIPT#{id}` | `MSG#{ts}` | 챗봇 대화 `{role, text}` + 메시지별 `slot`·`choices`·`suggestions`·`actions`·`pending_suggestions`·`event`·`reviewed_at` |
+| `DELETIONS` | 삭제 시각 | 관리자가 지운 증빙의 삭제 기록 |
+| `USAGE` | `DAILY#<날짜>` | 소개 페이지 비용 카드의 하루 스냅샷 |
+| `COUNTER` | `EMPNO#<코드><연도>` | 사번 순번 |
 
-`timings` (단계별 시각, ISO8601): `created`, `uploaded`, `analysis_started`, `analysis_finished`, `chat_first_question`, `chat_last_answer`, `submitted`. 워커는 `model_usage {input_tokens, output_tokens, latency_ms}`도 기록한다.
+`timings` (단계별 시각, ISO8601): `created`, `uploaded`, `analysis_started`, `analysis_finished`, `chat_first_question`, `chat_last_answer`, `submitted`. 워커는 `model_usage {input_tokens, output_tokens, latency_ms, prompt, image_bytes}`도 기록한다.

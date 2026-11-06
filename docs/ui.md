@@ -8,7 +8,7 @@ React 18 + React Router 6 + Vite + TypeScript (`web/package.json` 기준). 상�
 도구 설치·AWS 로그인·환경 파일 생성·백엔드와 웹을 함께 실행하는 순서는 [로컬 개발 시작하기](local-setup.md)를 따릅니다.
 
 ```bash
-cd web && npm install && npm run dev        # http://localhost:5173 (백엔드 8000–8002로 프록시)
+cd web && npm ci && npm run dev             # http://localhost:5173 (백엔드 8000–8002로 프록시)
 npm run build                               # 타입 검사 + 배포 빌드 (CI 필수 검사 "web")
 node --test tests/*.test.mjs                  # 검수 정렬·분석 시간·보완 사유 문구 회귀 검사
 ```
@@ -82,7 +82,7 @@ src/
 | `FieldForm` | 증빙 정보 폼 (AI 표시·확인 필요 표시·필수 칸), 대화에서 "직접 수정"하면 해당 칸으로 이동 |
 | `ReceiptParts` | `PhotoPanel`(보정본/원본 전환·다시 찍기), `SubmitReview`(최종 확인 카드), `Checks`, `History` |
 | `CornerEditor` | 사진 위 네 모서리 끌기 (원본 픽셀 좌표) |
-| `Widget`, `Metric`, `AmountBars` | 홈 위젯, 숫자 행, 금액 막대 |
+| `Widget`, `MetricRow`, `AmountBars` | 홈 위젯, 숫자 행, 금액 막대 |
 | `RecentReceipts` | 최근 연/올린/처리한 증빙 탭 위젯 |
 | `StatusChip`, `ReviewFlags`, `SearchBox` | 상태 칩, 오류·주의 표시, 검색 칸 |
 | `landing/` | 소개 페이지 그림·애니메이션 (아키텍처 그림, 단계 데모 등), `UsageCard`("AWS 비용" 섹션 — `GET /api/public/usage`, 실패하면 "불러올 수 없어요"), `Team`("만든 사람들" — 아키텍처와 AWS 비용 사이, 영역별 담당 4명·GitHub 프로필·팀 저장소 링크, 화면 코드에 고정) |

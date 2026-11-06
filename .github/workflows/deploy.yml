@@ -1,5 +1,5 @@
 # Merge to main → new images → rolling update on the EKS cluster, but only while a cluster exists
-# (it is created for rehearsals and the demo, then deleted the same day; otherwise this job skips).
+# (it stays on until the demo; if it does not exist, this job skips).
 # Also runs by hand: Actions → deploy → Run workflow.
 # Needs the repo secret AWS_DEPLOY_ROLE_ARN (infra/terraform/admin output github_deploy_role_arn,
 # created when the admin stack's github_repo is set to this repository). Without it the job skips.

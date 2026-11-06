@@ -197,7 +197,9 @@ def submit(receipt_id: str, *, user: User) -> dict[str, Any]:
 def review_list(
     status: Literal["submitted", "approved", "changes_requested", "draft"] = "submitted", *, _: User
 ) -> dict[str, Any]:
-    return {"items": [{**r, "review_points": review_points(r)} for r in store.list_by_status(status)]}
+    # The queue is worked oldest first, so it must never lose its oldest receipts to the list limit.
+    items = store.list_all_by_status(status)[::-1] if status == "submitted" else store.list_by_status(status)
+    return {"items": [{**r, "review_points": review_points(r)} for r in items]}
 
 
 def _decide(
@@ -235,6 +237,6 @@ def request_changes(receipt_id: str, body: ChangeRequest, *, user: User) -> dict
         user,
         "changes_requested",
         "changes_requested",
-        body.reason.strip(),
+        body.reason,
         list(dict.fromkeys(body.fields)),
     )

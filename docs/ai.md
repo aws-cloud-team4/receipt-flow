@@ -29,8 +29,8 @@
 - `extractor.py` — **프롬프트·스키마·버전(`PROMPT_VERSION = "receipt-extract-v9"`)이 이 파일에 있음**. 바꾸면 버전을 올리고 평가를 다시 돌립니다.
   - 읽는 칸: 상호명, 사업자번호, 거래 일시(분까지), 공급가액, 부가세, 면세금액, 총액(할인 후 최종), 결제수단(카드사 이름으로 신용/체크 판단), 카드사, 카드번호(찍힌 그대로), 승인번호(앞자리 0 유지), 분류 제안, 품목 요약(`items` — 목적 추천에 사용), `uncertain_fields`, `is_receipt`.
   - 원칙: 보이는 것만 적고 추측하지 않음, 고객 개인정보(이름·전화·주소·계좌)는 어떤 칸에도 넣지 않음, 점포 코드·전화번호는 상호명에서 뺌.
-  - 저장 시 `normalize_fields()`(공통)로 금액 정수화·일시 형식·분류 코드 변환, `run_checks()`로 검산·중복·같은 승인번호·심야·주말 점검.
-- 측정: 증빙에 `model_usage {input_tokens, output_tokens, latency_ms}`와 `timings`를 저장합니다. 조건별 지연·비용 추정은 [모델 평가 문서](model-eval.md)를 참고합니다.
+  - 저장 시 `normalize_fields()`(공통)로 금액 정수화·일시 형식·분류 코드 변환, `run_checks()`로 검산·거래 일시 형식·중복·같은 승인번호·심야·주말 점검.
+- 측정: 증빙에 `model_usage {input_tokens, output_tokens, latency_ms, prompt, image_bytes}`와 `timings`를 저장합니다. 조건별 지연·비용 추정은 [모델 평가 문서](model-eval.md)를 참고합니다.
 
 ## 3. AI 어시스턴트 (`chat-service`)
 
@@ -39,7 +39,7 @@
 | 들어온 것 | 처리 | 모델 |
 |---|---|---|
 | `choice` (추천 버튼) | 목적·분류를 바로 저장, 다음 할 일 안내 | ❌ |
-| `event: changes_requested` | "담당자 ○○님이 보완을 요청했어요: 사유" + 고칠 칸 버튼 | ❌ |
+| `event: changes_requested` | "○○님이 보완을 요청했어요: 사유" + [직접 수정] (사진이면 [다시 찍기]) | ❌ |
 | `event: analysis_done` (결과 확인 전) | 정해진 문장 "영수증을 읽었어요. 내용이 맞는지 확인해 주세요." + 흐린 칸·검산 오류. 같은 턴에 목적·분류 추천을 **미리 만들어 숨겨 둠**(`pending_suggestions`) | ✅ (추천만) |
 | 결과 카드 [맞아요]·[수정 완료] | `result_confirmed_at` 기록 → 주의 경고 한 문장 + "어떤 일로 쓰신 비용인가요?" + 숨겨 둔 추천 | ❌ |
 | 결과 카드 [직접 수정] | 폼에서 고치라고 안내 + [수정 완료] | ❌ |
@@ -80,7 +80,7 @@
 
 | 무엇 | 어떻게 |
 |---|---|
-| 추출 정확도 | 합성 세트 생성 후 `cd services && uv run python scripts/eval/compare_models.py --set set global.anthropic.claude-sonnet-5-5` |
+| 추출 정확도 | 합성 세트 생성 후 `compare_models.py`로 평가 — 세트별 명령은 [model-eval.md](model-eval.md#합성-데이터로-평가하기) |
 | 최신 수치·측정 조건 | [model-eval.md](model-eval.md)에서 관리. 현재 프롬프트와 평가 조건의 일치 여부 및 샘플 한계를 함께 확인 |
 | 대화 품질 | `services/tests/test_chat_agent.py`(도구·서버 규칙, 모델 흉내) — 실제 모델로 도는 **대화 평가 세트는 아직 없음** |
 | 비용 | 평가 문서의 조건별 토큰 비용 추정 참고. 실제 청구는 Budgets, 부하 테스트는 꼭 mock |

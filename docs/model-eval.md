@@ -31,10 +31,12 @@ Bedrock의 글로벌 추론 프로필을 사용합니다. 기본 설정은 `serv
 
 ```bash
 cd services
-uv run --with pillow python scripts/eval/make_eval_set.py
+uv run --with pillow python scripts/eval/make_work_set.py   # 위 표의 합성 업무 지출 세트 18장 (scripts/eval/work/)
+uv run python scripts/eval/compare_models.py --set work global.anthropic.claude-sonnet-5-5
+uv run --with pillow python scripts/eval/make_eval_set.py   # 기본 합성 세트 12장 (scripts/eval/set/)
 uv run python scripts/eval/compare_models.py --set set global.anthropic.claude-sonnet-5-5
 ```
 
-결과는 `services/scripts/eval/set/results.json`에 저장됩니다. 새 결과를 반영할 때 모델 ID·프롬프트 버전·샘플 수·측정일·정확도·오류·지연·비용 추정 조건을 함께 적습니다. 과거 결과를 누적하거나 폐기한 모델 비교표를 남기지 않습니다.
+결과는 각 세트 폴더의 `results.json`(`scripts/eval/work/`, `scripts/eval/set/`)에 저장됩니다. 새 결과를 반영할 때 모델 ID·프롬프트 버전·샘플 수·측정일·정확도·오류·지연·비용 추정 조건을 함께 적습니다. 과거 결과를 누적하거나 폐기한 모델 비교표를 남기지 않습니다.
 
 개인정보가 담긴 실제 영수증을 새 테스트 데이터로 추가하지 않습니다. 합성 사진은 `services/scripts/make_sample_receipt.py`와 `scripts/eval/make_*.py`로 만듭니다.
