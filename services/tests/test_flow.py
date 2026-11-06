@@ -167,3 +167,22 @@ def test_review_points_and_the_change_request_round_trip(api, chat, requested_fi
 
     api.patch(f"/api/receipts/{rid}", json={"fields": {"purpose": "A사 담당자 점심 접대"}}, headers=EMP)
     assert api.post(f"/api/receipts/{rid}/submit", headers=EMP).json()["review_status"] == "submitted"
+
+
+def test_change_request_needs_a_real_reason(api):
+    rid = new_receipt(api)
+    store.update_receipt(rid, review_status="submitted")
+    url = f"/api/review/receipts/{rid}/request-changes"
+    blank = api.post(url, json={"reason": "   "}, headers=REV)
+    assert blank.status_code == 400 and blank.json()["error"]["code"] == "invalid_request"
+    assert api.post(url, json={"reason": "  목적을 적어 주세요. "}, headers=REV).json()["review_note"] == (
+        "목적을 적어 주세요."
+    )
+
+
+def test_review_queue_keeps_the_oldest_past_the_list_limit(api):
+    ids = [store.create_receipt("dev-queue", "대기열", "server", {})["id"] for _ in range(201)]
+    for rid in ids:
+        store.update_receipt(rid, review_status="submitted")
+    listed = {r["id"] for r in api.get("/api/review/receipts?status=submitted", headers=REV).json()["items"]}
+    assert ids[0] in listed and len(listed) == 201

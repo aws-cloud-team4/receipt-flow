@@ -58,7 +58,7 @@ uv run ruff format --check . && uv run ruff check . && uv run pytest   # CI 필�
 | `errors.py` | `ApiError(status, code, message)` → `{"error": {code, message}}` |
 | `aws.py` | **AWS 클라이언트는 반드시 여기서** (`client("s3")`, `table()`) — 테스트에서 moto로 바뀜. 로컬은 `AWS_PROFILE`, EKS는 Pod Identity |
 | `auth.py` | `current_user` (Bearer 토큰 → `User`), `employee_only`, `reviewer_only`, `admin_only`. Cognito ID 토큰을 JWKS로 검증, 그룹 → 역할(admin > reviewer > employee). 개발 토큰 `dev:<sub>:<role>:<id>`와 테스트 계정 10개(`DEV_PROFILES`) |
-| `domain.py` | 칸 목록(`AI_FIELDS`, `REQUIRED_FIELDS`, `FIELD_LABELS`), 분류 10개(`CATEGORIES`, 예전 코드 변환 `to_category`), `normalize_fields`(금액 정수·일시·카드번호), `run_checks`(검산·중복·같은 승인번호·심야·주말), `review_points`(검수자가 먼저 볼 것), `missing_required`, `ro`(로/으로) |
+| `domain.py` | 칸 목록(`AI_FIELDS`, `REQUIRED_FIELDS`, `FIELD_LABELS`), 분류 10개(`CATEGORIES`, 예전 코드 변환 `to_category`), `normalize_fields`(금액 정수·일시·카드번호), `run_checks`(검산·거래 일시 형식·중복·같은 승인번호·심야·주말), `review_points`(검수자가 먼저 볼 것), `missing_required`, `ro`(로/으로) |
 | `org.py` | 부서 7개(코드·설명), 직급 6개, 검수 부서(재무회계부), 관리자 코드 `ADM`, 사번 접두어 |
 | `store.py` | DynamoDB 저장소 (아래) |
 | `bedrock.py` | `call_tool()` — 도구 호출로 JSON 강제, 모델별 요청 조정 |
@@ -67,9 +67,9 @@ uv run ruff format --check . && uv run ruff check . && uv run pytest   # CI 필�
 
 | pk | sk | 내용 |
 |---|---|---|
-| `RECEIPT#{id}` | `META` | 증빙 본문: `owner_sub`, `owner_name`, `owner_profile`, `fields`, `analysis_status`, `review_status`, `needs_check`, `ai_filled`, `checks`, `result_confirmed_at`, `review_note`, `review_fields`, `preprocess`, `timings`, `model_usage`, `ai_context.items` |
+| `RECEIPT#{id}` | `META` | 증빙 본문: `owner_sub`, `owner_name`, `owner_profile`, `fields`, `analysis_status`, `review_status`, `needs_check`, `ai_filled`, `checks`, `result_confirmed_at`, `review_note`, `review_fields`, `reviewed_by`, `reviewed_at`, `submitted_at`, `analysis_error`, `image_key`, `preprocess`, `timings`, `model_usage`, `ai_context.items`, `seed`(시드 데이터) |
 | `RECEIPT#{id}` | `EVENT#{ts}` | 처리 이력 `{actor, action, note}` (화면 이름은 `web/src/labels.ts`의 `ACTION_LABEL`) |
-| `RECEIPT#{id}` | `MSG#{ts}` | 대화 `{role: user|assistant|event, text, slot, choices, suggestions, actions, pending_suggestions}` |
+| `RECEIPT#{id}` | `MSG#{ts}` | 대화 `{role: user|assistant|event, text, slot, choices, suggestions, actions, pending_suggestions, event, reviewed_at}` |
 | `DELETIONS` | 삭제 시각 | 관리자가 지운 증빙의 기록 (`log_deletion`/`list_deletions`, 최신순) |
 | `USAGE` | `DAILY#<날짜>` | 소개 페이지 비용 카드의 하루 스냅샷 (`get_usage`/`put_usage`, `api_service/usage.py`) |
 | `COUNTER` | `EMPNO#<코드><연도>` | 사번 순번 (원자적 증가 `next_sequence`) |
@@ -79,7 +79,7 @@ uv run ruff format --check . && uv run ruff check . && uv run pytest   # CI 필�
 | `gsi1` | `gsi1pk=OWNER#{sub}`, `gsi1sk=created_at` | 내 증빙 목록, 중복·같은 승인번호 점검 |
 | `gsi2` | `gsi2pk=STATUS#{review_status}`, `gsi2sk=updated_at` | 검수·관리자 상태별 목록 |
 
-`store.py` 주요 함수: `create_receipt`, `get_receipt`, `update_receipt`(`expect={"review_status": (...)}`로 **상태 조건부 쓰기** — 그 사이 상태가 바뀌었으면 `ConflictError` → 409), `apply_fields`(칸 반영 + 점검 다시 계산), `list_by_owner`, `list_by_status`(화면 목록, 최대 `limit`건), `list_all_by_status`(페이지를 끝까지 읽음 — CSV 내보내기), `delete_receipt`(대화·이력까지, 상태 조건), `add_event`/`list_events`, `add_message`/`list_messages`/`delete_messages`, `log_deletion`/`list_deletions`/`delete_deletion`, `next_sequence`.
+`store.py` 주요 함수: `create_receipt`, `get_receipt`, `update_receipt`(`expect={"review_status": (...)}`로 **상태 조건부 쓰기** — 그 사이 상태가 바뀌었으면 `ConflictError` → 409), `apply_fields`(칸 반영 + 점검 다시 계산), `list_by_owner`, `list_by_status`(화면 목록, 최근 수정된 순으로 최대 `limit`=200건, 다음 페이지 없음), `list_all_by_status`(페이지를 끝까지 읽음 — CSV 내보내기, 검수 대기열 `submitted`), `delete_receipt`(대화·이력까지, 상태 조건), `add_event`/`list_events`, `add_message`/`list_messages`/`delete_messages`, `log_deletion`/`list_deletions`/`delete_deletion`, `next_sequence`.
 DynamoDB 숫자는 `Decimal`이라 `_plain`/`_ddb`가 오갈 때 변환합니다.
 
 ## 인증·권한
@@ -87,7 +87,7 @@ DynamoDB 숫자는 `Decimal`이라 `_plain`/`_ddb`가 오갈 때 변환합니다
 - 로그인은 브라우저가 Cognito에 직접 합니다. 서버는 **ID 토큰**만 받아 서명(JWKS)·발급자·클라이언트를 검사합니다. 비밀번호는 서버를 거치지 않습니다.
 - 프로필(이름·사번·부서·직급)은 Cognito 사용자 속성(`custom:*`), 역할은 그룹. 관리자 API(`admin.py`)가 Cognito Admin API로 계정을 만들고 고칩니다 (임시 비밀번호는 응답으로 한 번만, 저장·로그 없음).
 - 권한 규칙: 직원은 자기 증빙만, `draft`·`changes_requested`일 때만 수정·제출. 검수 담당자는 모두 조회, `submitted`만 승인·보완 요청. 관리자는 `/api/admin/*`와 공통 `/api/me`·`/api/meta`를 사용하며 일반 작성·대화·사진 보정 경로는 차단됩니다. 규칙의 원문은 [contract.md](contract.md).
-- 검사: 검수 담당자 = 재무회계부, 관리자 = 부서 없음, 자기 자신 강등·중지·삭제 금지, 목록 밖 부서·직급 거부.
+- 검사: 검수 담당자 = 재무회계부, 관리자 = 부서 없음(역할을 관리자로 바꾸면 있던 부서를 지움), 자기 자신 강등·중지·삭제 금지, 목록 밖 부서·직급 거부.
 
 ## 스크립트 (`services/scripts/`)
 

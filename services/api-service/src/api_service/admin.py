@@ -228,15 +228,19 @@ def update_user(username: str, body: UserPatch, me: User = Depends(admin_only)) 
     if body.role and body.role != "admin" and target["role"] == "admin" and _is_self(target, me):
         raise ApiError(409, "self_demote", "자기 자신의 관리자 권한은 뺄 수 없어요.")
     _check_org(body.department, body.position, keep=target)
-    _check_reviewer(body.role or target["role"], body.department or target.get("department"))
-    editable = ("department", "position")
-    changes = {"name": body.name, **{k: getattr(body, k) for k in editable}}
+    role = body.role or target["role"]
+    _check_reviewer(role, body.department or target.get("department"))
+    department = body.department
+    if role == "admin":  # admins only manage: no department, even one they had before the change
+        department = "" if target.get("department") else None
+    editable = {"department": department, "position": body.position}
+    changes = {"name": body.name, **editable}
     set_attrs = [
         {"Name": ("name" if k == "name" else f"custom:{k}"), "Value": v.strip()}
         for k, v in changes.items()
         if v is not None and v.strip()
     ]
-    clear = [f"custom:{k}" for k in editable if getattr(body, k) is not None and not getattr(body, k).strip()]
+    clear = [f"custom:{k}" for k, v in editable.items() if v is not None and not v.strip()]
     if set_attrs:
         _idp().admin_update_user_attributes(UserPoolId=_pool(), Username=username, UserAttributes=set_attrs)
     if clear:

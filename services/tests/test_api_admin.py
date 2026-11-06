@@ -257,3 +257,16 @@ def test_admins_have_no_department(api, pool):
     assert user["department"] is None and user["employee_no"] == f"ADM{YEAR}002"
     # everyone else still needs one
     assert _new(api, "nodept@example.com", department=None).json()["error"]["code"] == "invalid_department"
+
+
+def test_becoming_an_admin_clears_the_department(api, pool):
+    user = _new(api, "promote@example.com").json()["user"]
+    assert user["department"] == "개발부"
+    body = {"name": "신입", "position": "사원", "role": "admin"}  # what the account form sends for an admin
+    changed = api.patch(f"/api/admin/users/{user['username']}", headers=ADMIN, json=body)
+    assert changed.status_code == 200, changed.text
+    assert changed.json()["user"]["role"] == "admin" and changed.json()["user"]["department"] is None
+    again = api.patch(
+        f"/api/admin/users/{user['username']}", headers=ADMIN, json=body
+    )  # nothing left to clear
+    assert again.status_code == 200, again.text

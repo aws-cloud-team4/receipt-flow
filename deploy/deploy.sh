@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Deploy everything to the EKS cluster from this PC (after `terraform -chdir=infra/terraform/eks apply`).
-#   bash deploy/deploy.sh               # test deploy: 1 node, fixed replicas (eks node_count=1)
+#   bash deploy/deploy.sh               # test deploy: 1 node, HPA only (eks node_count=1)
 #   SCALING=1 bash deploy/deploy.sh     # final deploy: + Cluster Autoscaler (nodes 2→3) and KEDA (ocr-worker 1→5)
-#                                       #   create the cluster with -var node_count=2 for this
+#                                       #   needs -var node_count=2 -var node_min_count=2 (switching a running cluster: deploy/README.md)
 # Needs: aws (profile team-admin = your IAM user, not root), docker, kubectl, helm.
 # Does: kubeconfig → AWS Load Balancer Controller → build and push 5 images to ECR → apply deploy/k8s
 #       → wait for the pods and the ALB → point CloudFront (HTTPS) at the ALB → print the address.
