@@ -11,6 +11,9 @@ const ORIGINAL_MAX_SIDE = 3200; // the server crops from this, so keep enough fo
 
 type Phase = "pick" | "uploading" | "adjust" | "applying";
 
+/** Phones and tablets: some (Android's photo picker) offer no camera for a plain file input, so we ask first. */
+const touchFirst = () => window.matchMedia("(hover: none) and (pointer: coarse)").matches;
+
 /**
  * Pick or shoot a photo → upload the original → the server finds the receipt's corners →
  * the user checks or drags them → the server crops → analysis starts.
@@ -25,7 +28,9 @@ export default function NewReceipt() {
   const [quad, setQuad] = useState<Quad | null>(null);
   const [wholePhoto, setWholePhoto] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [choosing, setChoosing] = useState(false);
   const input = useRef<HTMLInputElement>(null);
+  const cameraInput = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
 
   useEffect(() => () => void (preview && URL.revokeObjectURL(preview)), [preview]);
@@ -74,6 +79,11 @@ export default function NewReceipt() {
   }
 
   const busy = phase === "uploading" || phase === "applying";
+
+  function choose() {
+    if (touchFirst()) setChoosing(true);
+    else input.current?.click();
+  }
   const blurry = detection?.blurry ?? false;
   const title = existingId ? "사진 다시 올리기" : "영수증 올리기";
 
@@ -95,7 +105,8 @@ export default function NewReceipt() {
             </div>
           </div>
 
-          {/* no `capture`: phones then offer both the camera and the photo library */}
+          <input ref={cameraInput} type="file" accept="image/*" capture="environment" hidden
+            onChange={(e) => { pick(e.target.files?.[0]); e.target.value = ""; }} />
           <input ref={input} type="file" accept="image/*" hidden
             onChange={(e) => { pick(e.target.files?.[0]); e.target.value = ""; }} />
 
@@ -110,7 +121,7 @@ export default function NewReceipt() {
               <div className="overlay"><div><div className="spinner" />영수증 테두리를 찾는 중이에요</div></div>
             </div>
           ) : (
-            <button className="dropzone" disabled={busy} onClick={() => input.current?.click()}
+            <button className="dropzone" disabled={busy} onClick={choose}
               onDragOver={(e) => e.preventDefault()}
               onDrop={(e) => { e.preventDefault(); pick(e.dataTransfer.files[0]); }}>
               <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden>
@@ -157,7 +168,7 @@ export default function NewReceipt() {
           <div style={{ display: "flex", gap: 8 }}>
             {preview && (
               <button className={`btn btn-lg ${blurry ? "btn-primary" : "btn-ghost"}`} disabled={busy}
-                onClick={() => input.current?.click()}>
+                onClick={choose}>
                 {blurry ? "다시 찍기" : "다시 선택"}
               </button>
             )}
@@ -170,6 +181,26 @@ export default function NewReceipt() {
           </div>
         </div>
       </main>
+
+      {choosing && (
+        <div className="sheet-backdrop" onClick={() => setChoosing(false)}>
+          <div className="choice-sheet" role="dialog" aria-label="사진 올리는 방법" onClick={(e) => e.stopPropagation()}>
+            <button onClick={() => { setChoosing(false); cameraInput.current?.click(); }}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden>
+                <path d="M4 8h3l2-3h6l2 3h3v11H4z" /><circle cx="12" cy="13" r="3.5" />
+              </svg>
+              사진 찍기
+            </button>
+            <button onClick={() => { setChoosing(false); input.current?.click(); }}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden>
+                <rect x="3.5" y="4.5" width="17" height="15" rx="2" /><circle cx="9" cy="10" r="1.8" /><path d="m4 18 5.5-5.5 4 4 2.5-2.5 4.5 4.5" />
+              </svg>
+              앨범에서 선택
+            </button>
+            <button className="choice-cancel" onClick={() => setChoosing(false)}>취소</button>
+          </div>
+        </div>
+      )}
     </>
   );
 }
