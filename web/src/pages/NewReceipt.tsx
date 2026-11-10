@@ -54,6 +54,7 @@ export default function NewReceipt() {
       setPhase("adjust");
     } catch (e) {
       setError((e as Error).message);
+      setPreview(null); // back to the box instead of a spinner that never ends
       setPhase("pick");
     }
   }
@@ -94,7 +95,8 @@ export default function NewReceipt() {
             </div>
           </div>
 
-          <input ref={input} type="file" accept="image/*" capture="environment" hidden
+          {/* no `capture`: phones then offer both the camera and the photo library */}
+          <input ref={input} type="file" accept="image/*" hidden
             onChange={(e) => { pick(e.target.files?.[0]); e.target.value = ""; }} />
 
           {preview && detection ? (
@@ -115,7 +117,7 @@ export default function NewReceipt() {
                 <path d="M4 8h3l2-3h6l2 3h3v11H4z" /><circle cx="12" cy="13" r="3.5" />
               </svg>
               <strong>영수증 촬영 또는 사진 선택</strong>
-              <span className="muted small">휴대폰에서는 카메라가 바로 열려요</span>
+              <span className="muted small">휴대폰에서는 바로 찍거나 앨범에서 고를 수 있어요</span>
             </button>
           )}
 
