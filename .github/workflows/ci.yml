@@ -73,7 +73,8 @@ jobs:
       - run: kubectl kustomize deploy/k8s > rendered.yaml
       # KEDA objects have no built-in schema; they are parsed but not schema-checked.
       - run: kubeconform -strict -summary -ignore-missing-schemas rendered.yaml deploy/k8s-scaling/
-      # Deploy config must stay Cognito + Bedrock: no dev login, no mock worker on the shared queue.
+      # Deploy config must stay Cognito + Bedrock: no full dev login (RF_DEV_LOGIN lets the admin test
+      # account in; only RF_DEMO_LOGIN, which has no admin, may be deployed), no mock worker on the shared queue.
       - run: |
           grep -q 'RF_AUTH_MODE: cognito' rendered.yaml
           grep -q 'RF_AI_MODE: bedrock' rendered.yaml

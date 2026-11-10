@@ -3,6 +3,8 @@
 RF_AUTH_MODE=dev accepts only `Bearer dev:<sub>:<role>[:<id>]` so tests and offline work need no Cognito.
 RF_DEV_LOGIN=true (local services/.env only) accepts those dev tokens next to Cognito ones: the hidden
 developer login with the test accounts below.
+RF_DEMO_LOGIN=true (deploy, for demos) accepts dev tokens only for the employee/reviewer test accounts
+below, exactly as listed: no admin, no made-up ids, roles or subs.
 Profile (name, department, position, employee number) comes from Cognito attributes in the ID token:
 `name`, `custom:department`, `custom:position`, `custom:employee_no`; role comes from the group.
 """
@@ -108,11 +110,17 @@ def role_from_groups(groups: list[str]) -> Role:
     return "admin" if "admin" in groups else "reviewer" if "reviewer" in groups else "employee"
 
 
-def _verify_dev(token: str) -> User:
+def _verify_dev(token: str, *, demo: bool = False) -> User:
     parts = token.split(":")
     if len(parts) < 3 or parts[0] != "dev" or parts[2] not in ROLES:
         raise _unauthorized()
     dev_id = parts[3] if len(parts) > 3 else parts[1]
+    if demo:
+        # Deployed demo login: only a listed non-admin test account, with its own sub and role,
+        # so a token can never name an admin or a real person's sub.
+        listed = DEV_PROFILES.get(dev_id)
+        if listed is None or listed[4] == "admin" or parts[2] != listed[4] or parts[1] != f"dev-{dev_id}":
+            raise _unauthorized()
     name, department, position, employee_no, _ = DEV_PROFILES.get(
         dev_id, (dev_id, None, None, None, "employee")
     )
@@ -131,10 +139,12 @@ def authenticate(token: str, s: Settings | None = None) -> User:
     s = s or get_settings()
     if s.auth_mode == "dev" or (s.dev_login and token.startswith("dev:")):
         return _verify_dev(token)
+    if s.demo_login and token.startswith("dev:"):
+        return _verify_dev(token, demo=True)
     return _verify_cognito(token, s)
 
 
-def dev_profiles() -> list[dict[str, str]]:
+def dev_profiles(*, include_admin: bool = True) -> list[dict[str, str]]:
     return [
         {
             "id": i,
@@ -146,6 +156,7 @@ def dev_profiles() -> list[dict[str, str]]:
             "employee_no": e,
         }
         for i, (n, d, p, e, r) in DEV_PROFILES.items()
+        if include_admin or r != "admin"
     ]
 
 

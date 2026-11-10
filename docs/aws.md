@@ -83,12 +83,12 @@ KEDA는 `provider: aws`, `identityOwner: keda`로 운영자 자신의 자격 증
 
 - `deploy.sh` 순서: kubeconfig → AWS Load Balancer Controller(Helm) → (최종) KEDA·Cluster Autoscaler → 이미지 5개 빌드·ECR 업로드(태그 = 커밋) → `kubectl apply -k deploy/k8s` (+ `deploy/k8s-scaling`) → ALB 주소 대기 → CloudFront를 새 ALB로 → **https 주소 출력**. 다시 실행해도 됩니다(제자리 갱신).
 - 매니페스트: `deploy/k8s/` (kustomize). 설정은 `config.yaml`(ConfigMap, 비밀값 없음 — 권한은 Pod Identity), 서비스마다 Deployment·Service·(HPA), `ingress.yaml`(ALB 하나, `/api` `/chat` `/preprocess` `/`).
-- **개발자 로그인은 배포 설정에 없음** → 배포에서는 꺼져 있음 (`/api/dev/profiles` 404). CI `manifests` 검사가 확인합니다.
+- **배포의 개발자 로그인은 시연용 `RF_DEMO_LOGIN`만** (`deploy/k8s/config.yaml`) → 직원·검수 담당자 테스트 계정 9개만 나오고 관리자 테스트 계정은 거부됩니다. 끄려면 이 줄을 지우고 다시 배포합니다(`/api/dev/profiles` 404). 관리자까지 되는 `RF_DEV_LOGIN`은 CI `manifests` 검사가 막습니다.
 - 로컬·EKS 워커는 같은 공용 큐를 소비합니다 — 분석 코드·모델 버전 맞추기는 [worker.md](worker.md).
 
 ### CI·자동 배포 (`.github/workflows/`)
 
-- `ci.yml` — PR 필수 검사 5종: **services**(ruff format·check, pytest), **web**(검수 정렬·분석 시간·보완 사유 회귀 검사 + build), **terraform**(fmt, 스택 6개 validate), **images**(배포 이미지 5개 빌드 — 서비스 4개 + 웹(Cognito 기본값), 이미지마다 따로 돌아 GitHub에는 `images (api-service)` 등 5개로 표시), **manifests**(`deploy/k8s` kustomize 렌더링 → kubeconform 스키마 검사(KEDA 객체는 형식만), 배포 설정이 `RF_AUTH_MODE: cognito`·`RF_AI_MODE: bedrock`이고 `RF_DEV_LOGIN`이 없는지 확인). 그래서 `main` 보호의 필수 체크는 9개입니다.
+- `ci.yml` — PR 필수 검사 5종: **services**(ruff format·check, pytest), **web**(검수 정렬·분석 시간·보완 사유 회귀 검사 + build), **terraform**(fmt, 스택 6개 validate), **images**(배포 이미지 5개 빌드 — 서비스 4개 + 웹(Cognito 기본값), 이미지마다 따로 돌아 GitHub에는 `images (api-service)` 등 5개로 표시), **manifests**(`deploy/k8s` kustomize 렌더링 → kubeconform 스키마 검사(KEDA 객체는 형식만), 배포 설정이 `RF_AUTH_MODE: cognito`·`RF_AI_MODE: bedrock`이고 `RF_DEV_LOGIN`이 없는지 확인 — 배포에는 관리자가 빠진 `RF_DEMO_LOGIN`만 허용). 그래서 `main` 보호의 필수 체크는 9개입니다.
 - `deploy.yml` — `main` 머지(서비스·웹·매니페스트 변경) 또는 수동 실행 → **클러스터가 켜져 있으면** 이미지 빌드·ECR → 롤아웃, 없으면 건너뜀. 배포 역할(`admin` 스택 `github.tf`)·Secret `AWS_DEPLOY_ROLE_ARN`·클러스터 접근 권한은 설정돼 있습니다 — 주의할 점은 [deploy/README.md](../deploy/README.md#1-배포).
 
 ## 비용

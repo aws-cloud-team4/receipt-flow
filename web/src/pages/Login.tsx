@@ -30,7 +30,18 @@ export default function Login({ onSignedIn }: { onSignedIn: () => Promise<void> 
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [devOpen, setDevOpen] = useState(false);
+  // The link shows only when the server offers test accounts (local developer login, or the deployed demo login).
+  const [devOffered, setDevOffered] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (authMode === "dev") return;
+    let alive = true;
+    devProfiles().then(() => alive && setDevOffered(true), () => undefined);
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   async function finish() {
     rememberEmail(remember ? email.trim() : null);
@@ -143,7 +154,7 @@ export default function Login({ onSignedIn }: { onSignedIn: () => Promise<void> 
     card = (
       <>
         <h1 id="signin-title">{authMode === "dev" ? "로그인" : "개발자 로그인"}</h1>
-        <p className="signin-sub">테스트 계정을 골라 비밀번호 없이 들어가요. (이 PC의 개발 서버에서만)</p>
+        <p className="signin-sub">테스트 계정을 골라 비밀번호 없이 들어가요.</p>
         <DevPicker onPick={(p) => dev(p.role, p.id)} />
         {authMode !== "dev" && (
           <button type="button" className="link-btn signin-back" onClick={() => setDevOpen(false)}>← 일반 로그인</button>
@@ -197,8 +208,8 @@ export default function Login({ onSignedIn }: { onSignedIn: () => Promise<void> 
           <section className="signin-card" aria-labelledby="signin-title">
             {card}
           </section>
-          {/* developer login: only in the local dev server build (never in a deploy build) */}
-          {import.meta.env.DEV && authMode !== "dev" && !devOpen && (
+          {/* developer login: only when the server has it on (404 otherwise) */}
+          {devOffered && authMode !== "dev" && !devOpen && (
             <button type="button" className="link-btn signin-dev" onClick={() => setDevOpen(true)}>개발자 모드</button>
           )}
         </div>
@@ -233,7 +244,7 @@ function DevPicker({ onPick }: { onPick: (p: DevProfile) => void }) {
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
     devProfiles().then(setItems, (e: Error) =>
-      setError(e.message === "off" ? "개발자 로그인이 꺼져 있어요. services/.env에 RF_DEV_LOGIN=true를 넣고 백엔드를 다시 켜 주세요." : e.message));
+      setError(e.message === "off" ? "개발자 로그인이 꺼져 있어요." : e.message));
   }, []);
   if (error) return <div className="alert error">{error}</div>;
   if (!items) return <div className="muted small">불러오는 중…</div>;
