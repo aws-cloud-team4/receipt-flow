@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { api, putImage, type Detection, type Quad } from "../api";
 import { InfoLink } from "../components/Help";
-import CameraCapture from "../components/CameraCapture";
 import CornerEditor from "../components/CornerEditor";
 import { SubNav } from "../components/Shell";
 import { canvasToJpeg, toCanvas } from "../image";
@@ -11,9 +10,6 @@ import { canvasToJpeg, toCanvas } from "../image";
 const ORIGINAL_MAX_SIDE = 3200; // the server crops from this, so keep enough for small text
 
 type Phase = "pick" | "uploading" | "adjust" | "applying";
-
-/** Touch-first devices (phones, tablets) open their camera app; computers get the in-page webcam. */
-const touchFirst = () => window.matchMedia("(hover: none) and (pointer: coarse)").matches;
 
 /**
  * Pick or shoot a photo → upload the original → the server finds the receipt's corners →
@@ -29,15 +25,12 @@ export default function NewReceipt() {
   const [quad, setQuad] = useState<Quad | null>(null);
   const [wholePhoto, setWholePhoto] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [camera, setCamera] = useState(false);
-  const shootInput = useRef<HTMLInputElement>(null);
-  const pickInput = useRef<HTMLInputElement>(null);
+  const input = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
 
   useEffect(() => () => void (preview && URL.revokeObjectURL(preview)), [preview]);
 
   async function pick(file: File | undefined) {
-    setCamera(false);
     if (!file) return;
     if (!file.type.startsWith("image/")) {
       setError("이미지 파일만 올릴 수 있어요.");
@@ -61,7 +54,7 @@ export default function NewReceipt() {
       setPhase("adjust");
     } catch (e) {
       setError((e as Error).message);
-      setPreview(null); // back to the two buttons instead of a spinner that never ends
+      setPreview(null); // back to the box instead of a spinner that never ends
       setPhase("pick");
     }
   }
@@ -81,12 +74,6 @@ export default function NewReceipt() {
   }
 
   const busy = phase === "uploading" || phase === "applying";
-
-  function shoot() {
-    setError(null);
-    if (touchFirst()) shootInput.current?.click();
-    else setCamera(true);
-  }
   const blurry = detection?.blurry ?? false;
   const title = existingId ? "사진 다시 올리기" : "영수증 올리기";
 
@@ -108,14 +95,11 @@ export default function NewReceipt() {
             </div>
           </div>
 
-          <input ref={shootInput} type="file" accept="image/*" capture="environment" hidden
-            onChange={(e) => { pick(e.target.files?.[0]); e.target.value = ""; }} />
-          <input ref={pickInput} type="file" accept="image/*" hidden
+          {/* no `capture`: phones then offer both the camera and the photo library */}
+          <input ref={input} type="file" accept="image/*" hidden
             onChange={(e) => { pick(e.target.files?.[0]); e.target.value = ""; }} />
 
-          {camera ? (
-            <CameraCapture onShot={pick} onCancel={() => setCamera(false)} />
-          ) : preview && detection ? (
+          {preview && detection ? (
             <div className="preview">
               <CornerEditor src={preview} width={detection.width} height={detection.height}
                 quad={wholePhoto ? null : quad} onChange={setQuad} />
@@ -126,20 +110,15 @@ export default function NewReceipt() {
               <div className="overlay"><div><div className="spinner" />영수증 테두리를 찾는 중이에요</div></div>
             </div>
           ) : (
-            <div className="pick">
-              <button className="dropzone" disabled={busy} onClick={shoot}
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={(e) => { e.preventDefault(); if (!busy) pick(e.dataTransfer.files[0]); }}>
-                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden>
-                  <path d="M4 8h3l2-3h6l2 3h3v11H4z" /><circle cx="12" cy="13" r="3.5" />
-                </svg>
-                <strong>영수증 촬영</strong>
-                <span className="muted small">휴대폰은 카메라, 컴퓨터는 웹캠이 열려요</span>
-              </button>
-              <button className="link-btn" disabled={busy} onClick={() => pickInput.current?.click()}>
-                찍어 둔 사진 선택하기
-              </button>
-            </div>
+            <button className="dropzone" disabled={busy} onClick={() => input.current?.click()}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => { e.preventDefault(); pick(e.dataTransfer.files[0]); }}>
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden>
+                <path d="M4 8h3l2-3h6l2 3h3v11H4z" /><circle cx="12" cy="13" r="3.5" />
+              </svg>
+              <strong>영수증 촬영 또는 사진 선택</strong>
+              <span className="muted small">휴대폰에서는 바로 찍거나 앨범에서 고를 수 있어요</span>
+            </button>
           )}
 
           {detection && (
@@ -163,7 +142,7 @@ export default function NewReceipt() {
             </div>
           )}
 
-          {phase === "pick" && !camera && (
+          {phase === "pick" && (
             <section className="panel panel-body">
               <ul className="tips">
                 <li>영수증 네 모서리가 모두 보이게 찍어 주세요.</li>
@@ -175,24 +154,20 @@ export default function NewReceipt() {
 
           {error && <div className="alert error">{error}</div>}
 
-          {preview && !camera && (
-            <div className="capture-actions">
-              <button className={`btn btn-lg ${blurry ? "btn-primary" : "btn-ghost"}`} disabled={busy} onClick={shoot}>
-                다시 찍기
+          <div style={{ display: "flex", gap: 8 }}>
+            {preview && (
+              <button className={`btn btn-lg ${blurry ? "btn-primary" : "btn-ghost"}`} disabled={busy}
+                onClick={() => input.current?.click()}>
+                {blurry ? "다시 찍기" : "다시 선택"}
               </button>
-              <button className="btn btn-lg btn-ghost" disabled={busy} onClick={() => pickInput.current?.click()}>
-                다른 사진 선택
-              </button>
-            </div>
-          )}
-          {!camera && (
-            <button className={`btn btn-lg ${blurry ? "btn-ghost" : "btn-primary"}`}
+            )}
+            <button className={`btn btn-lg ${blurry ? "btn-ghost" : "btn-primary"}`} style={{ flex: 1 }}
               disabled={phase !== "adjust"} onClick={confirm}>
               {phase === "uploading" ? "사진 올리는 중…"
                 : phase === "applying" ? "자르고 분석 시작하는 중…"
                 : blurry ? "그래도 올리기" : "이대로 올리고 분석 시작"}
             </button>
-          )}
+          </div>
         </div>
       </main>
     </>
