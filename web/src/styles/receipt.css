@@ -92,6 +92,13 @@
 .alert.warn { background: var(--warn-soft); color: #6b4d04; }
 .alert.info { background: var(--blue-soft); color: #064a8a; }
 .alert.ok { background: var(--ok-soft); color: #025c09; }
+.alert.done { background: var(--line-2); color: var(--ink-2); }
+.alert .check-text { flex: 1; min-width: 0; }
+.alert .check-note { color: var(--ink-3); }
+.alert > .link-btn { flex: none; font-size: 12px; }
+.check-note-form { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.check-note-form input { flex: 1 1 180px; min-width: 0; height: 34px; padding: 0 10px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--ink); }
+.check-note-form .btn { min-height: 34px; padding: 0 12px; font-size: 13px; }
 .stack { display: grid; gap: 8px; }
 
 .sticky-actions {
@@ -152,6 +159,7 @@
 .final-review .review-note { font-size: 13px; padding: 6px 10px; border-radius: 8px; margin-top: 6px; }
 .final-review .review-note.warn { background: var(--warn-soft); color: #6b4d04; }
 .final-review .review-note.err { background: var(--err-soft); color: #9b0f0f; }
+.final-review .review-note.done { background: var(--line-2); color: var(--ink-2); }
 .final-review .result-actions { justify-content: flex-end; }
 .dialog-backdrop { position: fixed; inset: 0; z-index: 50; background: rgba(15, 21, 29, 0.45); display: grid; place-items: center; padding: 16px; }
 .dialog { width: min(440px, 100%); max-height: calc(100vh - 32px); overflow: auto; background: var(--panel); border-radius: var(--radius); box-shadow: 0 12px 40px rgba(0,0,0,.25); }

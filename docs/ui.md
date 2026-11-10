@@ -81,6 +81,7 @@ src/
 | `ChatPanel` | AI 어시스턴트: 진행 표시(사진→보정→읽기→결과 확인), 결과 카드, 대화, 추천·선택 버튼, 최종 확인 카드, SSE 스트리밍 |
 | `FieldForm` | 증빙 정보 폼 (AI 표시·확인 필요 표시·필수 칸), 대화에서 "직접 수정"하면 해당 칸으로 이동 |
 | `ReceiptParts` | `PhotoPanel`(보정본/원본 전환·다시 찍기), `SubmitReview`(최종 확인 카드), `Checks`, `History` |
+| `Checks` | 점검 목록. 작성 중·보완 요청 상태에서 경고는 [사유 남기기], 금액 불일치는 [금액이 맞아요]로 사유 입력(200자) → `PUT …/checks/{code}/note`. 사유가 있으면 회색 "확인됨 · 사유"와 [사유 지우기]. 사유 있는 금액 불일치는 제출을 막지 않음(`blockingChecks`) |
 | `CornerEditor` | 사진 위 네 모서리 끌기 (원본 픽셀 좌표) |
 | `Widget`, `MetricRow`, `AmountBars` | 홈 위젯, 숫자 행, 금액 막대 |
 | `RecentReceipts` | 최근 연/올린/처리한 증빙 탭 위젯 |

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { Check, FieldKey, HistoryEvent, Receipt } from "../api";
+import { api, blockingChecks, NOTABLE_CHECKS, type Check, type FieldKey, type HistoryEvent, type Receipt } from "../api";
 import { InfoLink } from "./Help";
 import { ACTION_LABEL, categoryLabel, FIELD_LABELS, shortDate, txDate, won } from "../labels";
 
@@ -68,8 +68,8 @@ export function SubmitReview({ receipt, busy, onSubmit, onEdit, submitted = fals
 }) {
   const f = receipt.fields;
   const checks = receipt.checks ?? [];
-  const errors = checks.filter((c) => c.level === "error");
-  const warnings = checks.filter((c) => c.level !== "error");
+  const errors = blockingChecks(checks);
+  const warnings = checks.filter((c) => !errors.includes(c));
   const missing = REVIEW_FIELDS.filter((k) => k !== "department" && (f[k] == null || f[k] === ""));
   const value = (k: FieldKey) =>
     k === "total_amount" ? won(f.total_amount)
@@ -89,7 +89,11 @@ export function SubmitReview({ receipt, busy, onSubmit, onEdit, submitted = fals
           </div>
         ))}
       </dl>
-      {warnings.map((c) => <div key={c.code} className="review-note warn">⚠ {c.message}</div>)}
+      {warnings.map((c) => (
+        <div key={c.code} className={`review-note ${c.note ? "done" : "warn"}`}>
+          {c.note ? "✓" : "⚠"} {c.message}{c.note && <> · 사유: {c.note}</>}
+        </div>
+      ))}
       {errors.map((c) => <div key={c.code} className="review-note err">{c.message}</div>)}
       {missing.length > 0 && (
         <div className="review-note err">{missing.map((k) => FIELD_LABELS[k]).join(", ")}을(를) 채워 주세요.</div>
@@ -104,19 +108,78 @@ export function SubmitReview({ receipt, busy, onSubmit, onEdit, submitted = fals
   );
 }
 
-export function Checks({ receipt }: { receipt: Receipt }) {
+const NOTE_HINTS: Record<string, string> = {
+  amount_mismatch: "예: 쿠폰 1,200원 사용",
+  late_night: "예: 릴리스 대응 야근",
+  weekend: "예: 주말 행사 지원",
+  duplicate: "예: 같은 날 따로 결제한 다른 건",
+  same_approval: "예: 같은 결제를 나눠 올린 건",
+};
+
+/**
+ * Automatic checks. The employee may explain one instead of fixing it: an explained check turns grey
+ * ("확인됨") and an explained amount mismatch no longer blocks submitting. Reviewers still see it.
+ */
+export function Checks({ receipt, editable = false, onChange }: {
+  receipt: Receipt;
+  editable?: boolean;
+  onChange?: (r: Receipt) => void;
+}) {
   const checks: Check[] = receipt.checks ?? [];
+  const [open, setOpen] = useState<string | null>(null); // the check whose reason is being written
+  const [text, setText] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   if (receipt.analysis_status === "failed") {
     return <div className="alert error">{receipt.analysis_error ?? "분석에 실패했어요."} 직접 입력하거나 다시 올려 주세요.</div>;
   }
   if (!checks.length) return null;
+  const canNote = (c: Check) => editable && !!onChange && NOTABLE_CHECKS.includes(c.code);
+
+  async function save(code: string, note: string | null) {
+    setBusy(true);
+    setError(null);
+    try {
+      onChange?.(await api.noteCheck(receipt.id, code, note));
+      setOpen(null);
+      setText("");
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <div className="stack">
-      {checks.map((c) => (
+      {checks.map((c) => c.note ? (
+        <div key={c.code} className="alert done">
+          <b>확인됨</b>
+          <span className="check-text">{c.message} <span className="check-note">사유: {c.note}</span></span>
+          {canNote(c) && <button className="link-btn" disabled={busy} onClick={() => save(c.code, null)}>사유 지우기</button>}
+        </div>
+      ) : (
         <div key={c.code} className={`alert ${c.level === "error" ? "error" : "warn"}`}>
-          <b>{c.level === "error" ? "오류" : "확인"}</b> {c.message}<InfoLink topic="checks" />
+          <b>{c.level === "error" ? "오류" : "확인"}</b>
+          <span className="check-text">
+            {c.message}<InfoLink topic="checks" />
+            {open === c.code && (
+              <form className="check-note-form" onSubmit={(e) => { e.preventDefault(); if (text.trim()) save(c.code, text.trim()); }}>
+                <input autoFocus maxLength={200} value={text} placeholder={NOTE_HINTS[c.code]}
+                  aria-label="사유" onChange={(e) => setText(e.target.value)} />
+                <button className="btn btn-primary" disabled={busy || !text.trim()}>{busy ? "저장 중…" : "남기기"}</button>
+                <button type="button" className="btn btn-ghost" disabled={busy} onClick={() => setOpen(null)}>취소</button>
+              </form>
+            )}
+          </span>
+          {canNote(c) && open !== c.code && (
+            <button className="link-btn" onClick={() => { setOpen(c.code); setText(""); setError(null); }}>
+              {c.code === "amount_mismatch" ? "금액이 맞아요" : "사유 남기기"}
+            </button>
+          )}
         </div>
       ))}
+      {error && <div className="alert error">{error}</div>}
     </div>
   );
 }

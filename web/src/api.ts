@@ -27,7 +27,15 @@ export interface Check {
   code: string;
   level: "error" | "warn";
   message: string;
+  /** The employee's reason; an explained check shows as "확인됨" and does not block submitting. */
+  note?: string;
 }
+
+/** Checks an employee may explain instead of fixing (docs/contract.md "점검 사유"). */
+export const NOTABLE_CHECKS = ["amount_mismatch", "late_night", "weekend", "duplicate", "same_approval"];
+
+/** Errors that still stop submitting. */
+export const blockingChecks = (checks: Check[] = []) => checks.filter((c) => c.level === "error" && !c.note);
 
 export interface HistoryEvent {
   at: string;
@@ -230,6 +238,11 @@ export const api = {
   get: (id: string) => request<Receipt>("GET", `/api/receipts/${id}`),
   patch: (id: string, fields: Fields) => request<Receipt>("PATCH", `/api/receipts/${id}`, { fields }),
   submit: (id: string) => request<Receipt>("POST", `/api/receipts/${id}/submit`),
+  /** Explain a check instead of fixing it; null removes the reason. */
+  noteCheck: (id: string, code: string, note: string | null) =>
+    note === null
+      ? request<Receipt>("DELETE", `/api/receipts/${id}/checks/${code}/note`)
+      : request<Receipt>("PUT", `/api/receipts/${id}/checks/${code}/note`, { note }),
   /** Drafts only (never submitted): the record, chat, history and both photos are removed for good. */
   remove: (id: string) => request<void>("DELETE", `/api/receipts/${id}`),
   reviewList: (status: ReviewStatus) => request<{ items: Receipt[] }>("GET", `/api/review/receipts?status=${status}`),

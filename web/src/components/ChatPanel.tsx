@@ -2,6 +2,7 @@ import { analysisSeconds } from "../analysisTime";
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import {
   api,
+  blockingChecks,
   chatTurn,
   type ChatMessage,
   type ChatTurn,
@@ -317,7 +318,7 @@ function ResultCard({ receipt, confirmed, editable, onConfirm, onEdit }: {
 }) {
   const f = receipt.fields;
   const unsure = new Set(receipt.needs_check);
-  const mismatch = receipt.checks.some((c) => c.code === "amount_mismatch");
+  const mismatch = blockingChecks(receipt.checks).some((c) => c.code === "amount_mismatch");
   const allAmounts = f.supply_amount != null && f.vat_amount != null && f.total_amount != null;
   // As printed (digits, * and -): a partial number may be the first digits, not the last four.
   const card = [f.card_issuer, f.card_number].filter(Boolean).join(" ");
