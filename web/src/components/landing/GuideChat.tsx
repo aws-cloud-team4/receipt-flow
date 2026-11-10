@@ -51,12 +51,75 @@ async function ask(question: string, history: Line[], onText: (t: string) => voi
   return sources;
 }
 
-/** Plain text with **bold** (the model sometimes marks key phrases); everything else stays text. */
-function Rich({ text }: { text: string }) {
+/** Inline marks the guide uses: **bold** and `code`; everything else stays text (no HTML is parsed). */
+function Inline({ text }: { text: string }) {
   return <>{text.split(/(\*\*[^*\n]+\*\*|`[^`\n]+`)/g).map((part, i) =>
-    part.startsWith("**") && part.endsWith("**") ? <b key={i}>{part.slice(2, -2)}</b>
+    part.startsWith("**") && part.endsWith("**") && part.length > 4 ? <b key={i}>{part.slice(2, -2)}</b>
       : part.length > 2 && part.startsWith("`") && part.endsWith("`") ? <code key={i}>{part.slice(1, -1)}</code>
       : part)}</>;
+}
+
+const cells = (row: string) =>
+  row.trim().replace(/^\|/, "").replace(/\|$/, "").split(/(?<!\\)\|/).map((c) => c.trim().replace(/\\\|/g, "|"));
+
+/**
+ * The small Markdown subset the guide answers in: headings, tables, bullet and numbered lists,
+ * paragraphs. Rendered as React elements (never as HTML), so model text cannot inject markup.
+ */
+function Markdown({ text }: { text: string }) {
+  const lines = text.replace(/\r/g, "").split("\n");
+  const blocks: JSX.Element[] = [];
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+    if (!line.trim()) { i++; continue; }
+    if (line.trim().startsWith("```")) {
+      const code: string[] = [];
+      i++;
+      while (i < lines.length && !lines[i].trim().startsWith("```")) code.push(lines[i++]);
+      i++; // closing fence (or the end while the answer is still streaming)
+      blocks.push(<pre key={i} className="md-code">{code.join("\n")}</pre>);
+      continue;
+    }
+    const heading = /^(#{1,4})\s+(.*)$/.exec(line);
+    if (heading) {
+      blocks.push(<p key={i} className="md-h"><Inline text={heading[2]} /></p>);
+      i++;
+      continue;
+    }
+    if (line.trim().startsWith("|")) {
+      const rows: string[] = [];
+      while (i < lines.length && lines[i].trim().startsWith("|")) rows.push(lines[i++]);
+      const body = rows.filter((r) => !/^\s*\|?\s*:?-{2,}/.test(r));
+      const [head, ...rest] = body.map(cells);
+      blocks.push(
+        <div key={i} className="md-table"><table>
+          {head && <thead><tr>{head.map((c, j) => <th key={j}><Inline text={c} /></th>)}</tr></thead>}
+          <tbody>{rest.map((r, k) => <tr key={k}>{r.map((c, j) => <td key={j}><Inline text={c} /></td>)}</tr>)}</tbody>
+        </table></div>,
+      );
+      continue;
+    }
+    const bullet = /^\s*[-*]\s+/;
+    const numbered = /^\s*\d+[.)]\s+/;
+    if (bullet.test(line) || numbered.test(line)) {
+      const ordered = numbered.test(line);
+      const pattern = ordered ? numbered : bullet;
+      const items: string[] = [];
+      while (i < lines.length && (pattern.test(lines[i]) || (/^\s{2,}\S/.test(lines[i]) && items.length))) {
+        if (pattern.test(lines[i])) items.push(lines[i].replace(pattern, ""));
+        else items[items.length - 1] += " " + lines[i].trim();
+        i++;
+      }
+      const List = ordered ? "ol" : "ul";
+      blocks.push(<List key={i}>{items.map((t, k) => <li key={k}><Inline text={t} /></li>)}</List>);
+      continue;
+    }
+    const para: string[] = [];
+    while (i < lines.length && lines[i].trim() && !/^(#{1,4}\s|\s*\||\s*[-*]\s|\s*\d+[.)]\s|\s*```)/.test(lines[i])) para.push(lines[i++]);
+    blocks.push(<p key={i}><Inline text={para.join("\n")} /></p>);
+  }
+  return <div className="md">{blocks}</div>;
 }
 
 export default function GuideChat() {
@@ -124,7 +187,7 @@ export default function GuideChat() {
             )}
             {lines.map((l, i) => (
               <div key={i} className={`lp-guide-msg ${l.role}${l.error ? " error" : ""}`}>
-                {l.text ? <Rich text={l.text} />
+                {l.text ? (l.role === "assistant" && !l.error ? <Markdown text={l.text} /> : l.text)
                   : busy && i === lines.length - 1 ? <span className="lp-guide-dots" aria-label="답변 중"><i /><i /><i /></span> : null}
               </div>
             ))}
