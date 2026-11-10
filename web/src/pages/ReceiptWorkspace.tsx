@@ -159,7 +159,7 @@ export default function ReceiptWorkspace() {
               onFieldsChanged={() => load().catch(() => {})}
               onEditRequest={(field) => setFocus((f) => ({ field, n: f.n + 1 }))}
               onSubmit={submit} onRetake={retake} />
-            <Checks receipt={receipt} />
+            <Checks receipt={receipt} editable={editable} onChange={setReceipt} />
             <FieldForm receipt={receipt} editable={editable} missing={missing} onSave={save} focus={focus} />
             {receipt.history && receipt.history.length > 0 && <History events={receipt.history} />}
           </div>
