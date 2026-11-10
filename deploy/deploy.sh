@@ -70,6 +70,7 @@ if [ "${SCALING:-0}" = 1 ]; then
 fi
 
 echo "== images ($TAG)"
+bash deploy/copy-guide-docs.sh   # docs for the intro-page guide chat (chat-service image)
 # Keep the ECR login in a throwaway Docker config file. On Windows the credential helpers next to
 # docker.exe reject the long ECR token ("The stub received bad data") and the CLI picks them up from
 # PATH even with an empty config, so call docker.exe by its full path with that folder off PATH.

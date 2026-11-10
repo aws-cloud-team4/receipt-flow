@@ -12,3 +12,6 @@ Thumbs.db
 # Local container run: settings and short-lived AWS keys written by deploy/local/run.sh
 deploy/local/.env.*
 .claude/launch.json
+
+# Docs copied into the chat-service image by deploy/copy-guide-docs.sh (originals live in docs/)
+services/chat-service/guide_docs/
