@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type FormEvent } from "react";
 
 /**
  * "receiptflow에 물어보기": a floating chat on the intro page that answers questions about the service
@@ -162,8 +162,23 @@ export default function GuideChat() {
   const list = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    list.current?.scrollTo({ top: list.current.scrollHeight });
+    list.current?.scrollTo({ top: lines.length ? list.current.scrollHeight : 0 }); // the welcome stays at the top
   }, [lines, open]);
+
+  // Sit under the page's dark utility bar and follow it as it scrolls away, so the panel's title bar
+  // always lines up with the page's sticky nav (the bar's height is 0 once it is out of view).
+  const [top, setTop] = useState(0);
+  useEffect(() => {
+    if (!open) return;
+    const measure = () => {
+      const bar = document.querySelector<HTMLElement>(".lp-util");
+      setTop(Math.max(0, (bar?.offsetHeight ?? 0) - window.scrollY));
+    };
+    measure();
+    window.addEventListener("scroll", measure, { passive: true });
+    window.addEventListener("resize", measure);
+    return () => { window.removeEventListener("scroll", measure); window.removeEventListener("resize", measure); };
+  }, [open]);
 
   async function send(question: string) {
     const q = question.trim();
@@ -198,18 +213,29 @@ export default function GuideChat() {
         </button>
       )}
       {open && (
-        <section className="lp-guide" role="dialog" aria-label="receiptflow AI 챗봇">
+        <section className="lp-guide" role="dialog" aria-label="receiptflow AI 챗봇" style={{ "--guide-top": `${top}px` } as CSSProperties}>
           <header>
-            <div>
-              <b>receiptflow AI 챗봇</b>
-              <span>receiptflow의 무엇이든 물어보세요</span>
-            </div>
-            <button onClick={() => setOpen(false)} aria-label="닫기">✕</button>
+            <b>receiptflow AI 챗봇</b>
+            <button disabled={busy || lines.length === 0} onClick={() => { setLines([]); setSuggest(true); }} aria-label="새 대화" title="새 대화">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden><path d="M12 5v14M5 12h14" /></svg>
+            </button>
+            <button onClick={() => setOpen(false)} aria-label="닫기" title="닫기">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M15 5l-7 7 7 7" /></svg>
+            </button>
           </header>
           <div className="lp-guide-list" ref={list}>
-            <div className="lp-guide-msg assistant">
-              안녕하세요! 궁금한 점을 물어보시거나 아래 추천 질문을 눌러 보세요.
-            </div>
+            {lines.length === 0 && (
+              <div className="lp-guide-hello">
+                <svg width="72" height="72" viewBox="0 0 72 72" aria-hidden>
+                  <defs><linearGradient id="lp-guide-hex" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#5b7cf2" /><stop offset="1" stopColor="#a36cf0" /></linearGradient></defs>
+                  <path d="M36 4l27 15.500v33L36 68 9 52.500v-33z" fill="url(#lp-guide-hex)" />
+                  <path d="M33 20c1.100 8 4.900 11.800 13 13-8.100 1.200-11.900 5-13 13-1.100-8-4.900-11.800-13-13 8.100-1.200 11.900-5 13-13z" fill="#fff" />
+                  <path d="M47 39c.5 3.400 1.600 4.500 5 5-3.400.5-4.500 1.600-5 5-.5-3.400-1.600-4.500-5-5 3.400-.5 4.500-1.600 5-5z" fill="#fff" />
+                </svg>
+                <b>안녕하세요, receiptflow AI 챗봇이에요</b>
+                <p>이 프로젝트에 대해 궁금한 것은 무엇이든 편하게 물어보세요. 어디서부터 물어볼지 고민되면 아래 추천 질문을 눌러 보세요.</p>
+              </div>
+            )}
             {lines.map((l, i) => (
               <div key={i} className={`lp-guide-msg ${l.role}${l.error ? " error" : ""}`}>
                 {l.text ? (l.role === "assistant" && !l.error ? <Markdown text={l.text} /> : l.text)
