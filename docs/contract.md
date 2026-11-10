@@ -100,12 +100,17 @@ Cognito 사용자 속성 → ID 토큰 → `GET /api/me`. 직원·담당자 화�
 
 `result_confirmed_at`: 직원이 결과 카드의 [맞아요]·[수정 완료]를 누른 시각 (서버가 모델 없이 기록). 자유 대화에서 확인하면 도구 `confirm_result`가 기록한다. 다시 분석하면 `null`로 돌아간다. 화면은 이 값이 있으면 결과 카드 버튼을 숨긴다.
 
-`checks`: 자동 점검 결과 목록 `{code, level: "error"|"warn", message}`
+`checks`: 자동 점검 결과 목록 `{code, level: "error"|"warn", message, note?}`
 - `amount_mismatch` (오류) — 공급가액 + 부가세 + 면세금액 ≠ 총액 (공급가액·부가세·총액이 모두 있을 때만, 면세금액이 없으면 0)
 - `bad_date` (오류) — 거래 일시를 날짜로 읽을 수 없음
 - `late_night` — 22시~06시 거래(시각이 있을 때만), `weekend` — 주말 거래
 - `duplicate` — 같은 제출자의 같은 상호·거래일·총액 증빙이 이미 있음
 - `same_approval` — 같은 제출자의 같은 승인번호 증빙이 이미 있음 (다른 직원과의 중복은 승인번호 인덱스가 필요해 아직 미구현)
+
+**점검 사유 `note`** — 직원이 확인하고 남긴 사유. 사유가 있는 점검은 화면에서 "확인됨"으로 낮춰 보이고 챗봇이 다시 묻지 않는다. 검수 담당자에게는 사유와 함께 그대로 보인다(숨기지 않음).
+- 사유를 남길 수 있는 코드: `amount_mismatch`·`late_night`·`weekend`·`duplicate`·`same_approval` (`bad_date`는 고쳐야 하므로 불가)
+- `amount_mismatch`는 사람이 화면 버튼(`PUT .../checks/{code}/note`)으로만 남긴다. 사유가 있으면 제출을 막지 않는다(쿠폰·할인 등). 챗봇(도구 `note_check`)은 경고 4종만 기록한다.
+- 증빙에 `check_notes: {code: {note, by: "employee"|"chat", at, sig}}`로 저장한다. `sig`는 남길 때의 점검 문구 + 거래 일시이며, 금액·일시·중복 대상이 바뀌어 점검 문구나 거래 일시가 달라지면 사유는 자동으로 사라진다(다시 찍기 포함).
 
 ## HTTP API (api-service, prefix `/api`)
 
@@ -123,7 +128,9 @@ Cognito 사용자 속성 → ID 토큰 → `GET /api/me`. 직원·담당자 화�
 | `GET /api/receipts` | 직원 | 내 증빙 목록 (최신순, 사진 확정 전 `waiting` 증빙은 제외) |
 | `GET /api/receipts/{id}` | 본인·담당자 | 증빙 상세 + `image_url`(보정본) + `original_url`(원본, 5분 유효) + `history` + `review_points` (아래) |
 | `PATCH /api/receipts/{id}` `{fields: {...}}` | 본인 | 필드 수정. 수정할 수 없는 칸은 `400 unknown_fields` |
-| `POST /api/receipts/{id}/submit` | 본인 | 분석 중(`waiting`·`queued`·`processing`)이면 `409 analysis_pending`, 필수 항목이 비면 `422 missing_fields`, 오류 수준 점검(`level: "error"`, 예: 검산 불일치)이 있으면 `422 check_failed`. 통과하면 제출. 이미 제출됐으면 `409 not_editable` |
+| `PUT /api/receipts/{id}/checks/{code}/note` `{note}` | 본인 | 점검 사유 남기기(작성 중·보완 요청 상태). `note`는 앞뒤 공백을 뺀 1~200자(아니면 `400 invalid_request`). 지금 점검에 없는 코드는 `404 check_not_found`, 사유를 남길 수 없는 코드는 `400 not_notable`. 갱신된 증빙을 돌려준다 |
+| `DELETE /api/receipts/{id}/checks/{code}/note` | 본인 | 점검 사유 지우기 → 갱신된 증빙 (없으면 그대로) |
+| `POST /api/receipts/{id}/submit` | 본인 | 분석 중(`waiting`·`queued`·`processing`)이면 `409 analysis_pending`, 필수 항목이 비면 `422 missing_fields`, 사유 없는 오류 수준 점검(`level: "error"`, 예: 검산 불일치)이 있으면 `422 check_failed`. 통과하면 제출. 이미 제출됐으면 `409 not_editable` |
 | `DELETE /api/receipts/{id}` | 본인 | 작성 중(`review_status=draft`, 한 번도 제출 안 한 것)만 영구 삭제 → `204`. 증빙·대화·처리 이력·사진(원본 `raw/`, 보정본 `incoming/`)을 모두 지운다. 제출·보완 요청·승인된 증빙은 `409 not_deletable`. 분석 중에 지워지면 워커는 그 메시지를 버린다 |
 | `GET /api/review/receipts?status=submitted` | 담당자 | 상태별 목록. 각 항목에 `review_points`. 화면은 먼저 제출된 순(선입선출)으로 보여 주고, 오류·주의가 있는 건은 색·표시로 강조하고, 검수 목록에 **"주의" 탭**을 둔다(웹 주소 `/review?status=flagged`). 실제 API는 `status=submitted` 목록을 받고 웹에서 오류·주의 항목을 필터링한다. API의 허용 상태는 `submitted`·`approved`·`changes_requested`·`draft`이며 `status=flagged`를 API에 보내면 `400 invalid_request`다. `submitted`는 전부 읽고, 나머지 상태는 최근 수정된 순으로 최대 200건만 읽는다. 홈의 "주의·오류" 숫자는 이 탭으로 연결 |
 | `POST /api/review/receipts/{id}/approve` | 담당자 | 승인. 제출 상태가 아니면 `409 not_submitted` |
@@ -135,7 +142,7 @@ Cognito 사용자 속성 → ID 토큰 → `GET /api/me`. 직원·담당자 화�
 
 | `code` | 내용 | `fields` |
 |---|---|---|
-| `amount_mismatch` · `bad_date` · `late_night` · `weekend` · `duplicate` · `same_approval` | 점검 결과 (`checks`와 같은 코드·문구) | `[]` |
+| `amount_mismatch` · `bad_date` · `late_night` · `weekend` · `duplicate` · `same_approval` | 점검 결과 (`checks`와 같은 코드·문구). 직원 사유가 있으면 문구 뒤에 " — 직원 사유: …"를 붙이고, 사유가 있는 `amount_mismatch`는 `warn` | `[]` |
 | `unclear_fields` | 흐리게 읽혀 확인 안 된 칸 | 해당 칸 |
 | `analysis_failed` | AI가 읽지 못해(`analysis_status=failed`) 직원이 직접 입력함 | `[]` |
 | `edited_fields` | AI가 읽은 뒤 직원이 직접 입력·수정한 칸 (금액 칸이 있으면 `warn`, 아니면 `info`) | 해당 칸 |
