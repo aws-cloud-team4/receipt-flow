@@ -9,11 +9,57 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 interface Source { file: string; title: string }
 interface Line { role: "user" | "assistant"; text: string; sources?: Source[]; error?: boolean } // sources: kept, not shown
 
-const STARTERS = [
-  "receiptflow는 어떤 서비스인가요?",
-  "영수증 한 장은 어떻게 처리되나요?",
-  "AI가 잘못 읽으면 어떻게 되나요?",
-  "어떤 AWS 서비스를 썼나요?",
+/** Suggested questions, grouped by what a demo-day audience and judges tend to ask about. */
+const STARTERS: { topic: string; questions: string[] }[] = [
+  {
+    topic: "서비스",
+    questions: [
+      "receiptflow는 어떤 서비스인가요?",
+      "어떤 문제를 해결하나요? 누가 쓰나요?",
+      "영수증 한 장은 어떻게 처리되나요?",
+      "기존 경비 앱과 무엇이 다른가요?",
+    ],
+  },
+  {
+    topic: "AI",
+    questions: [
+      "왜 생성형 AI가 필요한가요?",
+      "Bedrock 모델을 어떻게 나눠 쓰나요?",
+      "AI가 잘못 읽으면 어떻게 되나요?",
+      "AI가 거짓말하지 않게 어떻게 막나요?",
+      "영수증 인식 정확도는 얼마나 되나요?",
+      "쿠폰처럼 금액이 안 맞는 영수증은 어떻게 하나요?",
+    ],
+  },
+  {
+    topic: "아키텍처·AWS",
+    questions: [
+      "전체 아키텍처를 설명해 주세요",
+      "어떤 AWS 서비스를 썼나요?",
+      "왜 Lambda가 아니라 EKS인가요?",
+      "사용자가 몰리면 어떻게 확장되나요?",
+      "전체 API를 알려 주세요",
+      "배포는 어떻게 하나요?",
+    ],
+  },
+  {
+    topic: "보안·비용·운영",
+    questions: [
+      "개인정보와 카드번호는 어떻게 다루나요?",
+      "로그인과 권한은 어떻게 관리하나요?",
+      "AWS 비용은 얼마나 들었나요?",
+      "영수증 한 장 처리에 AI 비용이 얼마인가요?",
+      "테스트와 검증은 어떻게 했나요?",
+    ],
+  },
+  {
+    topic: "팀·앞으로",
+    questions: [
+      "팀원과 담당 영역은 어떻게 되나요?",
+      "지금 한계는 무엇이고 다음 단계는요?",
+      "다른 회사에도 적용할 수 있나요?",
+    ],
+  },
 ];
 
 async function ask(question: string, history: Line[], onText: (t: string) => void): Promise<Source[]> {
@@ -127,6 +173,7 @@ export default function GuideChat() {
   const [lines, setLines] = useState<Line[]>([]);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
+  const [suggest, setSuggest] = useState(true); // the suggested-questions tray; reopened any time
   const list = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -138,6 +185,7 @@ export default function GuideChat() {
     if (!q || busy) return;
     const history = lines;
     setText("");
+    setSuggest(false);
     setBusy(true);
     setLines([...history, { role: "user", text: q }, { role: "assistant", text: "" }]);
     const update = (patch: (last: Line) => Line) =>
@@ -180,11 +228,6 @@ export default function GuideChat() {
             <div className="lp-guide-msg assistant">
               서비스가 어떻게 동작하는지, AI·AWS 구조, 사용법까지 무엇이든 물어보세요.
             </div>
-            {lines.length === 0 && (
-              <div className="lp-guide-starters">
-                {STARTERS.map((s) => <button key={s} onClick={() => send(s)}>{s}</button>)}
-              </div>
-            )}
             {lines.map((l, i) => (
               <div key={i} className={`lp-guide-msg ${l.role}${l.error ? " error" : ""}`}>
                 {l.text ? (l.role === "assistant" && !l.error ? <Markdown text={l.text} /> : l.text)
@@ -192,6 +235,21 @@ export default function GuideChat() {
               </div>
             ))}
           </div>
+          {suggest && (
+            <div className="lp-guide-tray" aria-label="추천 질문">
+              {STARTERS.map((g) => (
+                <div key={g.topic}>
+                  <b>{g.topic}</b>
+                  <div className="lp-guide-starters">
+                    {g.questions.map((q) => <button key={q} disabled={busy} onClick={() => send(q)}>{q}</button>)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          <button type="button" className="lp-guide-toggle" aria-expanded={suggest} onClick={() => setSuggest((v) => !v)}>
+            {suggest ? "추천 질문 닫기 ▾" : "추천 질문 보기 ▴"}
+          </button>
           <form onSubmit={submit}>
             <input value={text} maxLength={300} placeholder="궁금한 점을 물어보세요" aria-label="질문"
               onChange={(e) => setText(e.target.value)} disabled={busy} />
