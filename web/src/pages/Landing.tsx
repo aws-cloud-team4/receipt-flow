@@ -9,6 +9,7 @@ import { EmployeeArt, ReviewerArt } from "../components/landing/RoleArt";
 import StepDemo from "../components/landing/StepDemo";
 import TeamSection from "../components/landing/Team";
 import UsageSection from "../components/landing/UsageCard";
+import GuideChat from "../components/landing/GuideChat";
 import "./landing.css";
 
 // Public intro page for signed-out visitors. The layout follows a cloud-provider marketing home
@@ -179,6 +180,8 @@ export default function Landing({ me }: { me?: Me }) {
           <span>© 2026 receiptflow · AWS 클라우드 AI 부트캠프 4팀</span>
         </div>
       </footer>
+
+      <GuideChat />
     </div>
   );
 }
