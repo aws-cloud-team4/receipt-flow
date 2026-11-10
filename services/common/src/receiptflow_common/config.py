@@ -23,6 +23,8 @@ class Settings(BaseSettings):
     auth_mode: Literal["cognito", "dev"] = "cognito"
     # Local only: also accept dev tokens next to Cognito (the hidden developer login). Never in deploy.
     dev_login: bool = False
+    # Deploy (demo): dev tokens for the employee/reviewer test accounts only, never the admin one.
+    demo_login: bool = False
     cognito_pool_id: str = ""
     cognito_client_id: str = ""
 

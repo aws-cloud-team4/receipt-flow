@@ -48,7 +48,7 @@ src/
 |---|---|---|---|
 | `/` (로그인 전) | 소개 페이지 `Landing` | ← | ← |
 | `/about` (로그인 전·후) | 소개 페이지. 로그인 상태면 앱 틀 밖 전체 화면, 로그인 버튼 대신 "내 홈으로". 왼쪽 메뉴 맨 아래 "서비스 소개"·도움말 패널 아래 링크로 들어감 | ← | ← |
-| `/login` | `Login` (+ 로컬 개발 서버에서만 "개발자 모드") | ← | ← |
+| `/login` | `Login` (+ 서버가 테스트 계정을 줄 때만 "개발자 모드") | ← | ← |
 | `/` | `EmployeeDashboard` 홈 | `ReviewerDashboard` 홈 | `AdminUsers` 계정 관리 |
 | `/receipts?status=&cat=&q=` | `EmployeeHome` 내 증빙 | | |
 | `/new`, `/receipts/:id/photo` | `NewReceipt` 촬영·업로드·테두리 확인 (다시 찍기) | | |
@@ -97,7 +97,7 @@ src/
 
 - **보완 요청 작성** (`ReviewDetail`): 문제를 본 자리에서 요청 항목을 담습니다. 검토 포인트의 [요청에 담기]는 서버가 준 `code`·`fields`로 문구와 고칠 칸을 정하고(검토자 참고용 포인트에는 버튼 없음), 작성 중에는 증빙 정보 칸마다 [수정 요청]이 생겨 제출된 값을 넣은 문구(예: "총액(90,000원)을 …")를 담습니다. 사진 다시 찍기(흐림·잘림)는 작성 칸에서 고르며, 다른 항목과 함께 고르면 다시 찍기로 모든 칸이 비워진다고 알립니다. 담은 항목은 분류 칩(예: "심야 사유", "총액")으로 보이며 고칠 칸을 정합니다. 상세 사유는 선택이며, 적으면 그 내용만, 비워 두면 담은 항목의 기본 문구(같은 문구는 한 번)를 `reason`으로 보내고(기존 `{reason, fields}`), 보내기 전에 직원 챗봇에 보일 메시지를 미리 보여 줍니다. 500자·고칠 칸 10개를 넘으면 보내기를 막습니다(잘라 내지 않음). 작성 칸은 증빙 정보 바로 아래에 열리며(대화·처리 이력보다 위), 포인트·칸에서 담을 때 화면 위치는 그대로입니다. [보완 요청] 버튼도 넓은 화면에서는 위치를 유지하고, 휴대폰(≤900px)에서는 작성 칸으로 이동합니다(사진 아래 멀리 열리기 때문).
 - **로그인** (`auth.ts`): 브라우저가 Cognito에 직접 `InitiateAuth(USER_PASSWORD_AUTH)`. 관리자가 만든 계정은 `NEW_PASSWORD_REQUIRED` → 새 비밀번호. 토큰은 메모리+저장소, 만료 1분 전 갱신. 서버에는 ID 토큰만 보냄.
-- **개발자 로그인**: `import.meta.env.DEV`일 때만 링크 표시 → `GET /api/dev/profiles` → `dev:<sub>:<role>:<id>` 토큰. 기본 Cognito 배포 빌드에서는 링크가 숨겨지며 서버의 `RF_DEV_LOGIN`도 꺼집니다. 서버가 `RF_DEV_LOGIN=false`이고 `RF_AUTH_MODE=cognito`이면 목록 API는 404입니다. 로컬 컨테이너의 `AUTH=dev`는 별도 인증 모드로 빌드되며 실제 배포에 사용하지 않습니다.
+- **개발자 로그인**: 로그인 화면이 열릴 때 `GET /api/dev/profiles`를 불러 목록이 오면 링크 표시(404면 숨김) → 고른 계정의 `dev:dev-<id>:<role>:<id>` 토큰. 로컬(`RF_DEV_LOGIN`)은 10개, 배포(`RF_DEMO_LOGIN`)는 관리자를 뺀 9개가 나옵니다. 로컬 컨테이너의 `AUTH=dev`는 별도 인증 모드로 빌드되며 실제 배포에 사용하지 않습니다.
 - **새 영수증** (`NewReceipt`): 파일·카메라 → 긴 변 최대 3200px로 줄임(`ORIGINAL_MAX_SIDE`) → `POST /api/receipts`(또는 다시 찍기 `upload-url`) → S3 PUT → `detect` → `CornerEditor` → `apply` → `uploaded` → `/receipts/:id`.
 - **로컬 사진 분석**: 누구의 워커든 공용 큐의 사진을 처리하고, 모든 워커가 꺼져 있으면 분석이 대기합니다. [worker.md](worker.md).
 - **분석 완료 감지**: `ReceiptWorkspace`가 분석 중(`waiting`·`queued`·`processing`)인 동안 1.5초마다 `GET /api/receipts/{id}`로 다시 불러옵니다 (푸시 없음).

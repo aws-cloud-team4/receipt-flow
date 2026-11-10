@@ -175,16 +175,17 @@ Cognito 사용자 속성 → ID 토큰 → `GET /api/me`. 직원·담당자 화�
 
 역할 값 `role`: `employee` · `reviewer` · `admin`. 역할을 바꾸면 Cognito 그룹을 그 하나로 맞춘다.
 
-## 개발자 로그인 (로컬 전용)
+## 개발자 로그인
 
-`RF_DEV_LOGIN=true`(로컬 `services/.env`에만)일 때 서버는 Cognito 토큰과 함께 `Bearer dev:<sub>:<role>:<id>` 개발 토큰도 받는다.
-배포 설정(`deploy/k8s`)에는 없으므로 꺼져 있다. `RF_AUTH_MODE=dev`(자동 테스트)는 개발 토큰만 받는다.
+`RF_DEV_LOGIN=true`(로컬 `services/.env`에만)일 때 서버는 Cognito 토큰과 함께 `Bearer dev:<sub>:<role>:<id>` 개발 토큰도 받는다. `RF_AUTH_MODE=dev`(자동 테스트)는 개발 토큰만 받는다. 둘 다 배포 설정(`deploy/k8s`)에 넣지 않는다.
+
+`RF_DEMO_LOGIN=true`(배포 설정, 시연용)일 때 서버는 Cognito 토큰과 함께 **직원·검수 담당자 테스트 계정**의 개발 토큰만 받는다. 토큰은 목록의 계정 그대로 `dev:dev-<id>:<그 계정의 role>:<id>`여야 하며, 관리자 계정·목록에 없는 id·다른 role·다른 sub는 `401`이다.
 
 | 메서드 · 경로 | 설명 |
 |---|---|
-| `GET /api/dev/profiles` (로그인 불필요) | 테스트 계정 10개 `{items: [{id, name, role, role_label, department, position, employee_no}]}`. 개발자 로그인이 꺼져 있으면 `404` |
+| `GET /api/dev/profiles` (로그인 불필요) | 테스트 계정 `{items: [{id, name, role, role_label, department, position, employee_no}]}`. `RF_DEV_LOGIN`·`RF_AUTH_MODE=dev`면 10개, `RF_DEMO_LOGIN`이면 관리자를 뺀 9개, 모두 꺼져 있으면 `404` |
 
-화면: 로컬 개발 서버(`npm run dev`)에서는 로그인 화면 아래 "개발자 모드" 링크로 목록을 연다. 기본 Cognito 배포 빌드에서는 링크가 숨겨지고 서버도 개발자 인증을 허용하지 않는다. 로컬 컨테이너 검증용 `AUTH=dev`는 별도 dev 인증 빌드 경로이며 실제 배포에 사용하지 않는다.
+화면: 이 API가 목록을 주면 로그인 화면 아래 "개발자 모드" 링크가 보이고, `404`면 숨겨진다. 로컬 컨테이너 검증용 `AUTH=dev`는 별도 dev 인증 빌드 경로이며 실제 배포에 사용하지 않는다.
 테스트 데이터는 `scripts/seed_dev_data.py`로 넣고 `scripts/clear_dev_data.py`로 개발 계정(`owner_sub`가 `dev-`로 시작) 것만 지운다.
 
 ## chat-service (prefix `/chat`)

@@ -1,4 +1,4 @@
-"""Developer login support (local only): the test accounts, when RF_DEV_LOGIN is on."""
+"""Developer login support: the test accounts (RF_DEV_LOGIN locally; RF_DEMO_LOGIN in deploy, no admin)."""
 
 from typing import Any
 
@@ -13,6 +13,8 @@ router = APIRouter(prefix="/api/dev")
 @router.get("/profiles")
 def profiles() -> dict[str, Any]:
     s = get_settings()
-    if not (s.dev_login or s.auth_mode == "dev"):
-        raise not_found("개발자 로그인")
-    return {"items": dev_profiles()}
+    if s.dev_login or s.auth_mode == "dev":
+        return {"items": dev_profiles()}
+    if s.demo_login:
+        return {"items": dev_profiles(include_admin=False)}
+    raise not_found("개발자 로그인")

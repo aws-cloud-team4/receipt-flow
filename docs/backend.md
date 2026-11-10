@@ -15,7 +15,7 @@ bash scripts/dev.sh                       # api 8000 · chat 8001 · preprocess 
 uv run ruff format --check . && uv run ruff check . && uv run pytest   # CI 필수 검사 "services"
 ```
 
-- `RF_AI_MODE=mock`: Bedrock 없이 고정 추출 + 대본 대화. moto 또는 별도 테스트 리소스에서 사용하며 공용 큐에 mock 워커를 연결하지 않습니다. `RF_AUTH_MODE=dev`: 개발 토큰만 받음(자동 테스트). `RF_DEV_LOGIN=true`: Cognito와 함께 개발 토큰도(로컬 화면 "개발자 모드").
+- `RF_AI_MODE=mock`: Bedrock 없이 고정 추출 + 대본 대화. moto 또는 별도 테스트 리소스에서 사용하며 공용 큐에 mock 워커를 연결하지 않습니다. `RF_AUTH_MODE=dev`: 개발 토큰만 받음(자동 테스트). `RF_DEV_LOGIN=true`: Cognito와 함께 개발 토큰도(로컬 화면 "개발자 모드"). `RF_DEMO_LOGIN=true`: 배포 시연용, 직원·검수 담당자 테스트 계정의 개발 토큰만(관리자 거부).
 - **공용 워커:** `dev.sh`가 켜는 OCR 워커는 공용 큐의 모든 팀원 사진을 처리합니다. 켜도 되는 조건, `WORKER=0`, 워커만 켜기는 [worker.md](worker.md).
 - `dev.sh`는 `--reload` 없이 띄웁니다 (Windows에서 Ctrl+C 뒤 포트가 남는 문제). 코드를 바꾸면 다시 실행합니다.
 - `analysis_status=queued`가 계속되면 [워커 점검](worker.md#분석이-대기하거나-실패할-때)대로 로그·AWS 세션·큐 설정을 확인합니다. 개발자 로그인은 서버의 AWS 접근 자격 증명을 대신하지 않습니다.
