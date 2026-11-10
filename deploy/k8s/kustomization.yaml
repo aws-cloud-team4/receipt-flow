@@ -12,6 +12,7 @@ resources:
   - preprocess-service.yaml
   - ocr-worker.yaml
   - web.yaml
+  - guide.yaml
   - ingress.yaml
 
 images:

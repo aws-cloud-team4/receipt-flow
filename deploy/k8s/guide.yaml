@@ -1,0 +1,44 @@
+# Intro-page guide chat: answers questions about receiptflow from the project docs (POST /guide/ask).
+# Its own pod so visitor traffic never shares a process with the employees' AI assistant. It reuses the
+# chat-service image (code: chat_service/guide.py; docs copied in by deploy/copy-guide-docs.sh) and its
+# service account (Bedrock + table for the daily question counters). To switch it off: replicas 0, or
+# drop the /guide path from ingress.yaml.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: guide
+  labels: {app: guide}
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: guide}
+  template:
+    metadata:
+      labels: {app: guide}
+    spec:
+      serviceAccountName: chat-service
+      containers:
+        - name: app
+          image: chat-service
+          command: ["uvicorn", "chat_service.guide:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers"]
+          ports: [{containerPort: 8000}]
+          envFrom: [{configMapRef: {name: rf-config}}]
+          env:
+            - {name: RF_GUIDE_DOCS, value: /app/chat-service/guide_docs}
+          resources:
+            requests: {cpu: 50m, memory: 192Mi}
+            limits: {memory: 256Mi}
+          readinessProbe:
+            httpGet: {path: /healthz, port: 8000}
+            periodSeconds: 5
+          livenessProbe:
+            httpGet: {path: /healthz, port: 8000}
+            periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: guide
+spec:
+  selector: {app: guide}
+  ports: [{port: 80, targetPort: 8000}]

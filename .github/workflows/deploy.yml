@@ -63,6 +63,7 @@ jobs:
         run: |
           TAG=${GITHUB_SHA::12}
           echo "TAG=$TAG" >> $GITHUB_ENV
+          bash deploy/copy-guide-docs.sh   # docs for the intro-page guide chat (chat-service image)
           for s in api-service chat-service preprocess-service ocr-worker; do
             docker build --build-arg SERVICE=$s -t $ECR/receipt-flow/$s:$TAG services/
             docker push $ECR/receipt-flow/$s:$TAG

@@ -21,4 +21,5 @@ spec:
           - {path: /api, pathType: Prefix, backend: {service: {name: api-service, port: {number: 80}}}}
           - {path: /chat, pathType: Prefix, backend: {service: {name: chat-service, port: {number: 80}}}}
           - {path: /preprocess, pathType: Prefix, backend: {service: {name: preprocess-service, port: {number: 80}}}}
+          - {path: /guide, pathType: Prefix, backend: {service: {name: guide, port: {number: 80}}}}
           - {path: /, pathType: Prefix, backend: {service: {name: web, port: {number: 80}}}}

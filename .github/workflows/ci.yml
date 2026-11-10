@@ -56,6 +56,8 @@ jobs:
         service: [api-service, chat-service, preprocess-service, ocr-worker, web]
     steps:
       - uses: actions/checkout@v5
+      - if: matrix.service == 'chat-service'
+        run: bash deploy/copy-guide-docs.sh   # intro-page guide chat reads the docs (deploy/k8s/guide.yaml)
       - if: matrix.service != 'web'
         run: docker build --build-arg SERVICE=${{ matrix.service }} -t ${{ matrix.service }}:ci services/
       # Same default as deploy.sh: Cognito login, no dev mode.
