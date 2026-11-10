@@ -30,7 +30,6 @@ export default function NewReceipt() {
   const [wholePhoto, setWholePhoto] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [camera, setCamera] = useState(false);
-  const [dragging, setDragging] = useState(false);
   const shootInput = useRef<HTMLInputElement>(null);
   const pickInput = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
@@ -127,29 +126,19 @@ export default function NewReceipt() {
               <div className="overlay"><div><div className="spinner" />영수증 테두리를 찾는 중이에요</div></div>
             </div>
           ) : (
-            <div className={`pick-area${dragging ? " dragging" : ""}`}
-              onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
-              onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragging(false); }}
-              onDrop={(e) => { e.preventDefault(); setDragging(false); if (!busy) pick(e.dataTransfer.files[0]); }}>
-              <button className="pick-card" disabled={busy} onClick={shoot}>
-                <span className="pick-icon" aria-hidden>
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
-                    <path d="M4 8h3l2-3h6l2 3h3v11H4z" /><circle cx="12" cy="13" r="3.5" />
-                  </svg>
-                </span>
-                <strong>사진 촬영</strong>
-                <span className="muted small">카메라로 바로 찍기</span>
+            <div className="pick">
+              <button className="dropzone" disabled={busy} onClick={shoot}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => { e.preventDefault(); if (!busy) pick(e.dataTransfer.files[0]); }}>
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden>
+                  <path d="M4 8h3l2-3h6l2 3h3v11H4z" /><circle cx="12" cy="13" r="3.5" />
+                </svg>
+                <strong>영수증 촬영</strong>
+                <span className="muted small">휴대폰은 카메라, 컴퓨터는 웹캠이 열려요</span>
               </button>
-              <button className="pick-card" disabled={busy} onClick={() => pickInput.current?.click()}>
-                <span className="pick-icon" aria-hidden>
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
-                    <rect x="3.5" y="4.5" width="17" height="15" rx="2" /><circle cx="9" cy="10" r="1.8" /><path d="m4 18 5.5-5.5 4 4 2.5-2.5 4.5 4.5" />
-                  </svg>
-                </span>
-                <strong>사진 선택</strong>
-                <span className="muted small">앨범·파일에서 고르기</span>
+              <button className="link-btn" disabled={busy} onClick={() => pickInput.current?.click()}>
+                찍어 둔 사진 선택하기
               </button>
-              <p className="drop-hint muted small">사진 파일을 이곳에 끌어 놓아도 돼요</p>
             </div>
           )}
 
@@ -196,7 +185,7 @@ export default function NewReceipt() {
               </button>
             </div>
           )}
-          {preview && !camera && (
+          {!camera && (
             <button className={`btn btn-lg ${blurry ? "btn-ghost" : "btn-primary"}`}
               disabled={phase !== "adjust"} onClick={confirm}>
               {phase === "uploading" ? "사진 올리는 중…"
