@@ -11,7 +11,14 @@ from typing import Any
 from receiptflow_common import store
 from receiptflow_common.bedrock import call_tool
 from receiptflow_common.config import get_settings
-from receiptflow_common.domain import CATEGORIES, CATEGORY_HINTS, FIELD_LABELS, ro, to_category
+from receiptflow_common.domain import (
+    CATEGORIES,
+    CATEGORY_HINTS,
+    FIELD_LABELS,
+    blocking_checks,
+    ro,
+    to_category,
+)
 
 MAX_QUESTIONS = 3
 # Department comes from the login profile, so the chat never asks for it.
@@ -166,7 +173,9 @@ def next_reply(receipt: dict[str, Any], messages: list[dict[str, Any]]) -> Reply
         )
 
     if "confirm" not in asked:
-        issues = [c["message"] for c in receipt.get("checks", []) if c["code"] == "amount_mismatch"]
+        issues = [
+            c["message"] for c in blocking_checks(receipt.get("checks", [])) if c["code"] == "amount_mismatch"
+        ]
         unclear = receipt.get("needs_check", [])
         if unclear:
             issues.append(f"{', '.join(FIELD_LABELS[k] for k in unclear)} 값을 정확히 읽지 못했어요.")

@@ -253,6 +253,37 @@ def run_checks(
     return checks
 
 
+# Checks an employee may explain instead of fixing (docs/contract.md "점검 사유").
+NOTABLE_CHECKS = ("amount_mismatch", "late_night", "weekend", "duplicate", "same_approval")
+# The chatbot may record these; an amount mismatch is only waved through by a person's button.
+CHAT_NOTABLE_CHECKS = ("late_night", "weekend", "duplicate", "same_approval")
+
+
+def check_sig(check: dict[str, Any], fields: dict[str, Any]) -> str:
+    """What a reason was given for: the check's wording (amounts, other receipt) and the time."""
+    return f"{check['message']}|{fields.get('transaction_at') or ''}"
+
+
+def attach_notes(
+    checks: list[dict[str, Any]], notes: dict[str, Any] | None, fields: dict[str, Any]
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """Put each still-valid reason on its check; reasons for checks that changed or went away drop."""
+    kept: dict[str, Any] = {}
+    out = []
+    for c in checks:
+        n = (notes or {}).get(c["code"])
+        if n and n.get("sig") == check_sig(c, fields):
+            kept[c["code"]] = n
+            c = {**c, "note": n["note"]}
+        out.append(c)
+    return out, kept
+
+
+def blocking_checks(checks: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Errors that still stop submitting (an explained one does not)."""
+    return [c for c in checks if c["level"] == "error" and not c.get("note")]
+
+
 def duplicate_key(fields: dict[str, Any]) -> str | None:
     name, at, total = fields.get("merchant_name"), fields.get("transaction_at"), fields.get("total_amount")
     if not (name and at and total is not None):
@@ -271,7 +302,12 @@ def review_points(receipt: dict[str, Any]) -> list[dict[str, Any]]:
     def point(level: str, code: str, text: str, fields: list[str] | None = None) -> dict[str, Any]:
         return {"level": level, "code": code, "text": text, "fields": fields or []}
 
-    points = [point(c["level"], c["code"], c["message"]) for c in receipt.get("checks", [])]
+    points = [
+        point("warn", c["code"], f"{c['message']} — 직원 사유: {c['note']}")
+        if c.get("note")
+        else point(c["level"], c["code"], c["message"])
+        for c in receipt.get("checks", [])
+    ]
     labels = lambda keys: ", ".join(FIELD_LABELS[k] for k in keys)  # noqa: E731
     unclear = [k for k in receipt.get("needs_check", []) if k in FIELD_LABELS]
     if unclear:

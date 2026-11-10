@@ -14,6 +14,7 @@ from receiptflow_common.domain import (
     CATEGORIES,
     EDITABLE_STATUSES,
     FIELD_LABELS,
+    blocking_checks,
     missing_required,
     normalize_fields,
     now_iso,
@@ -115,7 +116,7 @@ def _next_step(receipt: dict[str, Any]) -> tuple[str, list[str]]:
         return "분석이 끝나면 확인할 내용을 알려 드릴게요.", []
     if missing:
         return f"{', '.join(missing)}은(는) 아래에서 채워 주세요.", []
-    if any(c["level"] == "error" for c in receipt.get("checks", [])):
+    if blocking_checks(receipt.get("checks", [])):
         return "점검 결과에 오류가 있어 먼저 확인해 주세요.", []
     return "제출할 내용을 확인해 주세요.", ["submit"]  # the screen shows the final review card
 
@@ -175,14 +176,14 @@ def opening_text(receipt: dict[str, Any]) -> str:
     unclear = [FIELD_LABELS[k] for k in receipt.get("needs_check", []) if k in FIELD_LABELS]
     if unclear:
         text += f" {', '.join(unclear)}은(는) 흐릿하게 읽혀서 사진과 꼭 비교해 주세요."
-    if any(c["code"] == "amount_mismatch" for c in receipt.get("checks", [])):
+    if any(c["code"] == "amount_mismatch" for c in blocking_checks(receipt.get("checks", []))):
         text += " 금액 검산이 맞지 않아 금액도 함께 봐 주세요."
     return text
 
 
 def _warning_hint(receipt: dict[str, Any]) -> str:
     """Late-night / weekend / duplicate notes as one plain sentence ("" when there are none)."""
-    codes = {c["code"] for c in receipt.get("checks", [])}
+    codes = {c["code"] for c in receipt.get("checks", []) if not c.get("note")}  # explained ones stay quiet
     at = parse_transaction_at((receipt.get("fields") or {}).get("transaction_at"))
     when = []
     if at and "weekend" in codes:

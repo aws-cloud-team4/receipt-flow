@@ -274,3 +274,22 @@ def test_warning_hint_names_the_day_and_hour():
         "checks": [{"code": "late_night"}, {"code": "weekend"}],
     }
     assert _warning_hint(receipt) == "토요일 밤 11시 결제라 사유를 목적에 함께 적어 두면 좋아요."
+
+
+def test_chatbot_records_warning_reasons_but_not_an_amount_mismatch(api):
+    st = agent.TurnState(receipt=analysed(api), user=USER)
+    agent.run_tool(
+        "update_fields", {"fields": {"transaction_at": "2026-10-17T23:10", "total_amount": 14000}}, st
+    )
+    codes = {c["code"] for c in st.receipt["checks"]}
+    assert {"weekend", "late_night", "amount_mismatch"} <= codes
+
+    result, summary = agent.run_tool("note_check", {"code": "late_night", "note": "릴리스 대응 야근"}, st)
+    assert result["ok"] and summary == "사유를 남겼어요"
+    assert any(line.endswith("(직원 확인: 릴리스 대응 야근)") for line in result["checks"])
+    assert store.get_receipt(st.receipt["id"])["check_notes"]["late_night"]["by"] == "chat"
+
+    refused, _ = agent.run_tool("note_check", {"code": "amount_mismatch", "note": "쿠폰"}, st)
+    assert not refused["ok"]
+    submission, _ = agent.run_tool("check_submission", {}, st)
+    assert submission["errors"] and not submission["ready"]  # still the person's button
