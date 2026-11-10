@@ -9,71 +9,30 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 interface Source { file: string; title: string }
 interface Line { role: "user" | "assistant"; text: string; sources?: Source[]; error?: boolean } // sources: kept, not shown
 
-/** Suggested questions by technical topic: what developers and demo-day judges ask about the build. */
+/** Suggested questions: only the core of the build (structure, AWS, AI). Anything else can be typed. */
 const STARTERS: { topic: string; questions: string[] }[] = [
   {
-    topic: "아키텍처",
+    topic: "구조",
     questions: [
       "전체 아키텍처를 설명해 주세요",
-      "영수증 한 장이 지나가는 흐름을 단계별로 알려 주세요",
-      "서비스 4개는 각각 무슨 일을 하나요?",
-      "서비스끼리는 어떻게 연결되나요?",
-      "왜 이 기술들을 선택했나요?",
-      "저장소 폴더 구조를 알려 주세요",
-    ],
-  },
-  {
-    topic: "API",
-    questions: [
       "전체 API를 알려 주세요",
-      "증빙 API와 오류 코드를 알려 주세요",
-      "검수 API와 검토 포인트를 알려 주세요",
-      "관리자 API를 알려 주세요",
-      "챗봇 API의 SSE 이벤트 형식은 어떻게 되나요?",
-      "사진 보정 API(detect·apply)는 어떻게 동작하나요?",
+      "DynamoDB 데이터 구조를 알려 주세요",
     ],
   },
   {
-    topic: "데이터 구조",
-    questions: [
-      "DynamoDB 테이블 구조를 상세히 알려 주세요",
-      "증빙의 상태는 어떻게 바뀌나요?",
-      "증빙 칸(필드) 목록과 규칙을 알려 주세요",
-      "자동 점검과 점검 사유는 어떻게 동작하나요?",
-      "S3와 SQS는 어떻게 구성돼 있나요?",
-    ],
-  },
-  {
-    topic: "AWS·배포",
+    topic: "AWS",
     questions: [
       "어떤 AWS 서비스를 어떻게 썼나요?",
-      "Terraform 스택 6개는 각각 무엇을 만드나요?",
       "EKS 구성과 자동 확장을 설명해 주세요",
-      "CI/CD와 자동 배포는 어떻게 되나요?",
-      "서비스별 IAM 권한은 어떻게 나눴나요?",
       "왜 Lambda가 아니라 EKS인가요?",
-      "AWS 비용은 어떻게 관리하나요?",
     ],
   },
   {
     topic: "AI",
     questions: [
       "Bedrock 모델을 어떻게 나눠 쓰나요?",
-      "영수증 추출은 어떻게 동작하나요?",
-      "AI 어시스턴트의 도구 7개를 알려 주세요",
-      "모델을 부르지 않는 턴은 무엇인가요?",
-      "서버가 AI 답을 검사하는 규칙은 무엇인가요?",
-      "영수증 테두리는 어떻게 찾나요?",
+      "AI가 틀리지 않게 어떻게 통제하나요?",
       "정확도와 평가 방법을 알려 주세요",
-    ],
-  },
-  {
-    topic: "인증·보안",
-    questions: [
-      "로그인과 토큰 검증은 어떻게 하나요?",
-      "역할별 권한은 어떻게 나뉘나요?",
-      "개인정보와 카드번호는 어떻게 다루나요?",
-      "개발자 모드는 어떻게 동작하나요?",
     ],
   },
 ];
