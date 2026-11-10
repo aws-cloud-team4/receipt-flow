@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 
 /**
  * "receiptflow에 물어보기": a floating chat on the intro page that answers questions about the service
@@ -165,21 +165,6 @@ export default function GuideChat() {
     list.current?.scrollTo({ top: lines.length ? list.current.scrollHeight : 0 }); // the welcome stays at the top
   }, [lines, open]);
 
-  // Sit under the page's dark utility bar and follow it as it scrolls away, so the panel's title bar
-  // always lines up with the page's sticky nav (the bar's height is 0 once it is out of view).
-  const [top, setTop] = useState(0);
-  useEffect(() => {
-    if (!open) return;
-    const measure = () => {
-      const bar = document.querySelector<HTMLElement>(".lp-util");
-      setTop(Math.max(0, (bar?.offsetHeight ?? 0) - window.scrollY));
-    };
-    measure();
-    window.addEventListener("scroll", measure, { passive: true });
-    window.addEventListener("resize", measure);
-    return () => { window.removeEventListener("scroll", measure); window.removeEventListener("resize", measure); };
-  }, [open]);
-
   async function send(question: string) {
     const q = question.trim();
     if (!q || busy) return;
@@ -213,7 +198,7 @@ export default function GuideChat() {
         </button>
       )}
       {open && (
-        <section className="lp-guide" role="dialog" aria-label="receiptflow AI 챗봇" style={{ "--guide-top": `${top}px` } as CSSProperties}>
+        <section className="lp-guide" role="dialog" aria-label="receiptflow AI 챗봇">
           <header>
             <b>receiptflow AI 챗봇</b>
             <button disabled={busy || lines.length === 0} onClick={() => { setLines([]); setSuggest(true); }} aria-label="새 대화" title="새 대화">

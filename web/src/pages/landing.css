@@ -1,13 +1,16 @@
 /* Public intro page (signed out). Everything is scoped under .lp / .demo. */
 .lp { --ink: #161d26; --gray: #f3f3f7; --hero: #5b7cf2; background: #fff; color: #333; min-height: 100%; }
+.lp [id] { scroll-margin-top: calc(var(--bar-h) + 84px); } /* in-page links land below the two sticky bars */
 .lp-wrap { max-width: 1200px; margin: 0 auto; padding: 0 clamp(16px, 5vw, 48px); }
 
 /* utility bar + nav */
-.lp-util { background: #232b37; color: #fff; font-size: 13px; }
-.lp-util-row { display: flex; justify-content: flex-end; align-items: center; gap: 22px; height: 40px; }
+/* the dark bar is the app's top bar (styles/shell.css .topbar): same height and colour, and it stays put */
+.lp { --bar-h: 52px; }
+.lp-util { position: sticky; top: 0; z-index: 21; background: var(--header); color: #fff; font-size: 13px; }
+.lp-util-row { display: flex; justify-content: flex-end; align-items: center; gap: 22px; height: var(--bar-h); }
 .lp-util a { color: #fff; }
 .lp-util a:hover { text-decoration: underline; }
-.lp-nav { position: sticky; top: 0; z-index: 20; background: #fff; border-bottom: 1px solid #e3e6eb; }
+.lp-nav { position: sticky; top: var(--bar-h); z-index: 20; background: #fff; border-bottom: 1px solid #e3e6eb; }
 .lp-nav-row { display: flex; align-items: center; gap: 26px; height: 72px; }
 /* .lp prefix: the app stylesheet (.brand is white) loads after this file */
 .lp .lp-brand { color: var(--ink); font-size: 26px; }
@@ -466,7 +469,7 @@
 .lp-guide-fab:hover { transform: translateY(-3px) scale(1.04); box-shadow: 0 14px 32px rgba(91, 124, 242, 0.55); }
 
 .lp-guide {
-  position: fixed; left: 0; top: var(--guide-top, 0px); bottom: 0; z-index: 40; width: var(--guide-w);
+  position: fixed; left: 0; top: var(--bar-h); bottom: 0; z-index: 40; width: var(--guide-w);
   display: flex; flex-direction: column; background: var(--g-bg); color: var(--g-text);
   border-right: 8px solid var(--gray); box-shadow: inset -1px 0 0 var(--g-line), 1px 0 0 var(--g-line); overflow: hidden; animation: lp-guide-in 0.2s ease-out;
   font-size: 15px; line-height: 1.6;
