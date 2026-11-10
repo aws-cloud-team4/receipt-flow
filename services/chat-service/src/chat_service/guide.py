@@ -34,18 +34,22 @@ app = create_app("receiptflow guide chat")
 # Generous on purpose: the guide is for the demo period; the day limit only stops runaway cost.
 PER_MINUTE = 20  # questions per visitor per minute (in this pod)
 PER_DAY = 300  # questions per visitor per day
-DAY_LIMIT = 2000  # questions per day for everyone together (about $0.012 each → at most ~$24/day)
-MAX_TOKENS = 700
+DAY_LIMIT = 2000  # questions per day for everyone together (~$0.015 each with caching → ~$30/day max)
+MAX_TOKENS = 3000  # room for "전체 API 알려줘"-sized answers
 KST = timezone(timedelta(hours=9))
 
 SYSTEM = "\n".join(
     [
         "당신은 receiptflow 소개 페이지의 안내 챗봇입니다.",
         "receiptflow는 AWS 클라우드 AI 부트캠프 4팀이 만든 영수증 증빙 접수·검수 AI 서비스입니다.",
-        "방문자(심사위원·개발자·일반 사용자)의 질문에 아래 [문서]만 근거로 답합니다.",
+        "방문자(심사위원·개발자·일반 사용자)의 질문에 아래 [문서](프로젝트의 모든 md 파일)만",
+        "근거로 답합니다.",
         "",
-        "- 한국어 존댓말로, 핵심부터 3~6문장. 필요하면 '- '로 시작하는 짧은 목록을 씁니다.",
-        "  표·제목·코드 블록은 쓰지 않습니다.",
+        "- 한국어 존댓말. 질문 범위에 맞춰 답합니다: 간단한 질문은 핵심부터 3~6문장,",
+        "  '전체'·'모두'·'상세히'를 물으면 해당 내용을 빠짐없이 정리합니다",
+        "  (예: 전체 API, 테이블 구조, 배포 절차).",
+        "- 마크다운을 씁니다: '## 제목', 표(| 칸 |), '- ' 목록, '1. ' 번호 목록, **굵게**, `코드`.",
+        "  명령어 예시가 꼭 필요할 때만 코드 블록(```)을 씁니다.",
         "- [문서]에 없는 내용은 지어내지 말고 '문서에서 확인되지 않아요'라고 말합니다.",
         "  숫자는 문서에 있는 그대로, 측정 조건이 있으면 함께 말합니다.",
         "- 기술적인 질문에는 구체적으로(서비스 이름, AWS 리소스, 동작 순서),",
@@ -127,8 +131,8 @@ def _sse(event: str, data: dict[str, Any]) -> str:
 
 
 def _documents(question: str) -> tuple[str, list[dict[str, str]]]:
-    picked = guide_docs.overview() + guide_docs.search(question)
-    text = "\n\n".join(f"### {s.file} — {s.title}\n{s.text}" for s in picked)
+    """All the documents (Bedrock caches them after the first request) and the best-matching sections."""
+    text = guide_docs.all_docs()
     found = guide_docs.search(question)[:3]
     sources = [{"file": s.file, "title": s.title.split(" › ")[-1]} for s in found]
     return text, sources
@@ -147,7 +151,8 @@ def _bedrock(question: str, history: list[Turn], documents: str) -> Iterator[str
     )
     resp = aws.client("bedrock-runtime").converse_stream(
         modelId=s.chat_model,
-        system=[{"text": SYSTEM}, {"text": f"[문서]\n{documents}"}],
+        # the documents are the same for every question: cache them (5 min, read at a tenth of the price)
+        system=[{"text": SYSTEM}, {"text": f"[문서]\n{documents}"}, {"cachePoint": {"type": "default"}}],
         messages=messages,
         inferenceConfig={"maxTokens": MAX_TOKENS},
         **extra,

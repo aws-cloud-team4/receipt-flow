@@ -39,9 +39,17 @@ def test_documents_are_masked():
         assert secret not in text
 
 
-def test_overview_always_goes_with_the_question():
-    docs, _ = guide._documents("팀 회의 다과")
-    assert "1. 시스템 한 장 그림" in docs and "2. 영수증 한 장이 지나가는 길" in docs
+def test_every_document_goes_with_every_question():
+    docs, _ = guide._documents("전체 api 알려주세요")
+    assert docs.count("=== 파일:") >= 12
+    for part in (
+        "=== 파일: docs/contract.md ===",
+        "## HTTP API",
+        "## DynamoDB",
+        "=== 파일: deploy/README.md ===",
+    ):
+        assert part in docs
+    assert "431777499129" not in docs and "arn:aws:" not in docs
 
 
 def test_question_and_history_are_bounded(client):

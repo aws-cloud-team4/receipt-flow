@@ -18,6 +18,21 @@ from functools import lru_cache
 from pathlib import Path
 
 DOC_PATTERNS = ("README.md", "AGENTS.md", "deploy/README.md", "docs/*.md")
+# Whole documents in reading order for the model (the full set is ~80k tokens; the request caches it).
+FULL_ORDER = (
+    "README.md",
+    "docs/architecture.md",
+    "docs/contract.md",
+    "docs/ui.md",
+    "docs/ai.md",
+    "docs/backend.md",
+    "docs/aws.md",
+    "docs/worker.md",
+    "docs/model-eval.md",
+    "docs/local-setup.md",
+    "deploy/README.md",
+    "AGENTS.md",
+)
 SECTION_MAX = 2400  # characters; long sections are split so one answer does not pull in a whole file
 CONTEXT_BUDGET = 7000  # characters of searched sections sent with one question (on top of the overview)
 # Always sent: what the service is, the big picture, one receipt's path, roles (a broad question needs them).
@@ -107,6 +122,22 @@ def split(file: str, text: str) -> list[Section]:
             body.append(line)
     flush()
     return sections
+
+
+@lru_cache(maxsize=1)
+def all_docs() -> str:
+    """Every document, masked, in FULL_ORDER (then any other docs/*.md), each under a file header."""
+    root = find_root()
+    if not root:
+        return ""
+    others = sorted(p.relative_to(root).as_posix() for p in root.glob("docs/*.md"))
+    names = list(FULL_ORDER) + [n for n in others if n not in FULL_ORDER]
+    parts = [
+        f"=== 파일: {name} ===\n" + mask((root / name).read_text(encoding="utf-8"))
+        for name in names
+        if (root / name).is_file()
+    ]
+    return "\n\n".join(parts)
 
 
 @lru_cache(maxsize=1)
