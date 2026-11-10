@@ -10,6 +10,7 @@ export default defineConfig({
       "/api": "http://localhost:8000",
       "/chat": "http://localhost:8001",
       "/preprocess": "http://localhost:8002",
+      "/guide": "http://localhost:8003",
     },
   },
 });
