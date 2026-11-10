@@ -53,14 +53,23 @@ def _order(pts: np.ndarray) -> np.ndarray:
     )
 
 
-def find_corners(img: np.ndarray) -> np.ndarray | None:
+EDGE_SIDE = 500  # the edge search is tuned for this size; keep it
+PAPER_SIDE = 600  # bright-paper search and the final comparison
+
+
+def _small(img: np.ndarray, side: int, interpolation: int = cv2.INTER_LINEAR) -> tuple[np.ndarray, float]:
     h, w = img.shape[:2]
-    scale = 500 / max(h, w)
-    small = cv2.resize(img, (int(w * scale), int(h * scale)))
+    scale = side / max(h, w)
+    return cv2.resize(img, (int(w * scale), int(h * scale)), interpolation=interpolation), scale
+
+
+def _edge_quad(img: np.ndarray) -> np.ndarray | None:
+    """Largest four-sided outline in the edge map (original pixels). Works on plain backgrounds."""
+    small, scale = _small(img, EDGE_SIDE)
     gray = cv2.GaussianBlur(cv2.cvtColor(small, cv2.COLOR_BGR2GRAY), (5, 5), 0)
     edges = cv2.dilate(cv2.Canny(gray, 50, 150), np.ones((3, 3), np.uint8))
     contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    area_min = small.shape[0] * small.shape[1] * 0.2
+    area_min = gray.shape[0] * gray.shape[1] * 0.2
     for c in sorted(contours, key=cv2.contourArea, reverse=True)[:5]:
         if cv2.contourArea(c) < area_min:
             break
@@ -68,6 +77,131 @@ def find_corners(img: np.ndarray) -> np.ndarray | None:
         if len(approx) == 4 and cv2.isContourConvex(approx):
             return _order(approx.reshape(4, 2).astype(np.float32) / scale)
     return None
+
+
+def _snap(q: np.ndarray, hull: np.ndarray) -> np.ndarray:
+    """Move each corner to the outline point that sticks out furthest toward it.
+
+    A curled receipt has bowed edges, so a four-point simplification can land partway along an edge;
+    the real corner is the outline point furthest out in that corner's direction.
+    """
+    pts = hull.reshape(-1, 2).astype(np.float32)
+    center = q.mean(axis=0)
+    rel = pts - center
+    dist = np.linalg.norm(rel, axis=1) + 1e-6
+    out = q.copy()
+    for i in range(4):
+        d = q[i] - center
+        d /= np.linalg.norm(d) + 1e-6
+        near = rel @ d / dist > 0.8  # outline points roughly in this corner's direction
+        if near.any():
+            out[i] = pts[near][np.argmax(rel[near] @ d)]
+    return out
+
+
+def _quad_from(contour: np.ndarray) -> np.ndarray | None:
+    hull = cv2.convexHull(contour)
+    peri = cv2.arcLength(hull, True)
+    quad = None
+    for eps in (0.02, 0.03, 0.045, 0.06):
+        approx = cv2.approxPolyDP(hull, eps * peri, True)
+        if len(approx) == 4 and cv2.isContourConvex(approx):
+            quad = approx.reshape(4, 2).astype(np.float32)
+            break
+    if quad is None:  # the bounding rectangle, when the shape is clearly box-like
+        rect = cv2.boxPoints(cv2.minAreaRect(hull)).astype(np.float32)
+        if cv2.contourArea(hull) / max(1.0, cv2.contourArea(rect)) <= 0.88:
+            return None
+        quad = rect
+    return _snap(_order(quad), hull)
+
+
+def _paper_quad(small: np.ndarray) -> np.ndarray | None:
+    """The receipt as the brightest colourless blob that does not touch the frame.
+
+    Wood grain, coloured tables and shadows break the edge outline, but thermal paper stays
+    bright and grey while most backgrounds are darker or coloured.
+    """
+    h, w = small.shape[:2]
+    area = h * w
+    hsv = cv2.cvtColor(cv2.GaussianBlur(small, (5, 5), 0), cv2.COLOR_BGR2HSV)
+    sat, val = hsv[..., 1], hsv[..., 2]
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (7, 7))
+    otsu, _ = cv2.threshold(val, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    best, best_score = None, 0.0
+    for sat_max in (40, 70):
+        for val_min in (otsu, np.percentile(val, 60), np.percentile(val, 75)):
+            mask = ((sat < sat_max) & (val >= val_min)).astype(np.uint8) * 255
+            mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel, iterations=3)  # fill in the print
+            mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
+            contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            for c in contours:
+                a = cv2.contourArea(c)
+                if not area * 0.05 <= a <= area * 0.9:
+                    continue
+                x, y, bw, bh = cv2.boundingRect(c)
+                touches = (x <= 2) + (y <= 2) + (x + bw >= w - 2) + (y + bh >= h - 2)
+                if touches >= 2:  # the background, not a receipt
+                    continue
+                quad = _quad_from(c)
+                if quad is None:
+                    continue
+                fill = a / max(1.0, cv2.contourArea(quad))
+                if fill < 0.8:
+                    continue
+                score = cv2.contourArea(quad) * min(fill, 1 / fill) * (0.6 if touches else 1.0)
+                if score > best_score:
+                    best, best_score = quad, score
+    return best
+
+
+def _corners_ok(q: np.ndarray, area: float) -> bool:
+    """Every corner between about 53° and 127°, not a sliver, and not just the photo's own frame."""
+    if not area * 0.05 <= cv2.contourArea(q) <= area * 0.9:
+        return False
+    for i in range(4):
+        v1, v2 = q[i - 1] - q[i], q[(i + 1) % 4] - q[i]
+        if abs(float(v1 @ v2) / (np.linalg.norm(v1) * np.linalg.norm(v2) + 1e-6)) >= 0.6:
+            return False
+    return True
+
+
+def _contrast(val: np.ndarray, q: np.ndarray) -> float:
+    """How much brighter the inside is than a thin band just outside."""
+    inside = np.zeros(val.shape, np.uint8)
+    cv2.fillPoly(inside, [q.astype(np.int32)], 255)
+    band = cv2.dilate(inside, np.ones((11, 11), np.uint8)) & ~inside
+    if not inside.any() or not band.any():
+        return 0.0
+    return float(val[inside > 0].mean() - val[band > 0].mean())
+
+
+def _nested(a: np.ndarray, b: np.ndarray) -> bool:
+    """One quad lies almost entirely inside the other."""
+    inter, _ = cv2.intersectConvexConvex(a, b)
+    return inter >= 0.9 * min(cv2.contourArea(a), cv2.contourArea(b))
+
+
+def find_corners(img: np.ndarray) -> np.ndarray | None:
+    """Four corners (TL, TR, BR, BL) in original pixels, or None.
+
+    Two searches: the edge outline and the bright-paper blob. Each answer must look like a
+    rectangle seen at an angle. If both outline the same receipt the edge one is kept; otherwise
+    the one that stands out most from its surroundings wins.
+    """
+    small, scale = _small(img, PAPER_SIDE, cv2.INTER_AREA)
+    paper = _paper_quad(small)
+    candidates = [_edge_quad(img), None if paper is None else paper / scale]
+    val = cv2.cvtColor(small, cv2.COLOR_BGR2HSV)[..., 2]
+    area = small.shape[0] * small.shape[1]
+    found = [q * scale for q in candidates if q is not None and _corners_ok(q * scale, area)]
+    if len(found) == 2 and _nested(found[0], found[1]):
+        # Same receipt: the edge outline is the precise one. The paper blob can stop at a shadow
+        # or a printed barcode, or spill into a pale table.
+        found = found[:1]
+    if not found:
+        return None
+    return _order(max(found, key=lambda q: _contrast(val, q)) / scale)
 
 
 def blur_score(img: np.ndarray) -> float:
