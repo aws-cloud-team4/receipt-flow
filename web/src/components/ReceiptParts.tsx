@@ -152,31 +152,33 @@ export function Checks({ receipt, editable = false, onChange }: {
 
   return (
     <div className="stack">
-      {checks.map((c) => c.note ? (
-        <div key={c.code} className="alert done">
-          <b>확인됨</b>
-          <span className="check-text">{c.message} <span className="check-note">사유: {c.note}</span></span>
-          {canNote(c) && <button className="link-btn" disabled={busy} onClick={() => save(c.code, null)}>사유 지우기</button>}
-        </div>
-      ) : (
-        <div key={c.code} className={`alert ${c.level === "error" ? "error" : "warn"}`}>
-          <b>{c.level === "error" ? "오류" : "확인"}</b>
-          <span className="check-text">
-            {c.message}<InfoLink topic="checks" />
-            {open === c.code && (
+      {checks.map((c) => (
+        <div key={c.code} className={`alert check ${c.note ? "done" : c.level === "error" ? "error" : "warn"}`}>
+          <b>{c.note ? "확인됨" : c.level === "error" ? "오류" : "확인"}</b>
+          <div className="check-body">
+            <p>{c.message}{!c.note && <InfoLink topic="checks" />}</p>
+            {c.note && <p className="check-note">사유: {c.note}</p>}
+            {open === c.code ? (
               <form className="check-note-form" onSubmit={(e) => { e.preventDefault(); if (text.trim()) save(c.code, text.trim()); }}>
                 <input autoFocus maxLength={200} value={text} placeholder={NOTE_HINTS[c.code]}
                   aria-label="사유" onChange={(e) => setText(e.target.value)} />
-                <button className="btn btn-primary" disabled={busy || !text.trim()}>{busy ? "저장 중…" : "남기기"}</button>
-                <button type="button" className="btn btn-ghost" disabled={busy} onClick={() => setOpen(null)}>취소</button>
+                <div className="check-note-actions">
+                  <button type="button" className="btn btn-ghost" disabled={busy} onClick={() => setOpen(null)}>취소</button>
+                  <button className="btn btn-primary" disabled={busy || !text.trim()}>{busy ? "저장 중…" : "남기기"}</button>
+                </div>
               </form>
+            ) : canNote(c) && (
+              <div>
+                {c.note ? (
+                  <button className="check-btn" disabled={busy} onClick={() => save(c.code, null)}>사유 지우기</button>
+                ) : (
+                  <button className="check-btn" onClick={() => { setOpen(c.code); setText(""); setError(null); }}>
+                    {c.code === "amount_mismatch" ? "금액이 맞아요" : "사유 남기기"}
+                  </button>
+                )}
+              </div>
             )}
-          </span>
-          {canNote(c) && open !== c.code && (
-            <button className="link-btn" onClick={() => { setOpen(c.code); setText(""); setError(null); }}>
-              {c.code === "amount_mismatch" ? "금액이 맞아요" : "사유 남기기"}
-            </button>
-          )}
+          </div>
         </div>
       ))}
       {error && <div className="alert error">{error}</div>}
