@@ -184,18 +184,12 @@ function Markdown({ text }: { text: string }) {
   return <div className="md">{blocks}</div>;
 }
 
-/** A friendly robot head: antenna, ears, two eyes and a smile (the open button and the panel header). */
+/** The AI sparkle: one large four-point star with a small one beside it (the open button). */
 function BotIcon({ size }: { size: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 32 32" fill="none" aria-hidden>
-      <path d="M16 3.5v4" stroke="#fff" strokeWidth="2" strokeLinecap="round" />
-      <circle cx="16" cy="3.2" r="2" fill="#ffd166" />
-      <rect x="2" y="14" width="3.5" height="7" rx="1.5" fill="#fff" opacity=".75" />
-      <rect x="26.5" y="14" width="3.5" height="7" rx="1.5" fill="#fff" opacity=".75" />
-      <rect x="5.5" y="7.5" width="21" height="19" rx="6.5" fill="#fff" />
-      <circle cx="12" cy="15.5" r="2.3" fill="#3b56c9" />
-      <circle cx="20" cy="15.5" r="2.3" fill="#3b56c9" />
-      <path d="M12 20.8c1.2 1.3 2.5 1.9 4 1.9s2.8-.6 4-1.9" stroke="#3b56c9" strokeWidth="1.8" strokeLinecap="round" />
+    <svg width={size} height={size} viewBox="0 0 32 32" fill="#fff" aria-hidden>
+      <path d="M14 4c.9 6.200 3.800 9.100 10 10-6.200.9-9.100 3.800-10 10-.9-6.200-3.800-9.100-10-10 6.200-.9 9.100-3.800 10-10z" />
+      <path d="M25 19c.4 2.700 1.300 3.600 4 4-2.700.4-3.600 1.300-4 4-.4-2.700-1.300-3.600-4-4 2.700-.4 3.600-1.300 4-4z" />
     </svg>
   );
 }
@@ -205,8 +199,7 @@ export default function GuideChat() {
   const [lines, setLines] = useState<Line[]>([]);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
-  const [suggest, setSuggest] = useState(true); // suggested questions; can be reopened mid-chat
-  const [topic, setTopic] = useState(0);
+  const [suggest, setSuggest] = useState(true); // the suggested-questions tray; reopened any time
   const list = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -242,30 +235,22 @@ export default function GuideChat() {
     <>
       {!open && (
         <button className="lp-guide-fab" onClick={() => setOpen(true)} aria-label="AI 안내 챗봇 열기" title="receiptflow에 물어보기">
-          <BotIcon size={34} />
+          <BotIcon size={32} />
         </button>
       )}
       {open && (
         <section className="lp-guide" role="dialog" aria-label="receiptflow 안내 챗봇">
-          <header className="lp-guide-head">
-            <span className="lp-guide-mark" aria-hidden>
-              <BotIcon size={24} />
-            </span>
-            <div className="lp-guide-title">
+          <header>
+            <div>
               <b>receiptflow 안내</b>
               <span>아키텍처·API·AWS·AI, 프로젝트 문서로 답해요</span>
             </div>
-            <button disabled={busy || lines.length === 0} onClick={() => { setLines([]); setSuggest(true); }}>새 대화</button>
-            <button className="lp-guide-close" onClick={() => setOpen(false)} aria-label="닫기">✕</button>
+            <button onClick={() => setOpen(false)} aria-label="닫기">✕</button>
           </header>
-
           <div className="lp-guide-list" ref={list}>
-            {lines.length === 0 && (
-              <div className="lp-guide-hello">
-                <b>무엇이든 물어보세요</b>
-                전체 구조부터 API 한 줄까지, 아래 추천 질문을 누르거나 직접 입력해 주세요.
-              </div>
-            )}
+            <div className="lp-guide-msg assistant">
+              전체 아키텍처, API, 데이터 구조, AWS·배포, AI까지 무엇이든 물어보세요.
+            </div>
             {lines.map((l, i) => (
               <div key={i} className={`lp-guide-msg ${l.role}${l.error ? " error" : ""}`}>
                 {l.text ? (l.role === "assistant" && !l.error ? <Markdown text={l.text} /> : l.text)
@@ -273,36 +258,25 @@ export default function GuideChat() {
               </div>
             ))}
           </div>
-
-          <div className="lp-guide-suggest">
-            <button type="button" className="lp-guide-suggest-bar" aria-expanded={suggest} onClick={() => setSuggest((v) => !v)}>
-              <span>추천 질문</span>
-              <span>{suggest ? "접기 ▾" : "보기 ▴"}</span>
-            </button>
-            {suggest && (
-              <>
-                <div className="lp-guide-tabs" role="tablist" aria-label="추천 질문 주제">
-                  {STARTERS.map((g, i) => (
-                    <button key={g.topic} type="button" role="tab" aria-selected={i === topic} onClick={() => setTopic(i)}>{g.topic}</button>
-                  ))}
+          {suggest && (
+            <div className="lp-guide-tray" aria-label="추천 질문">
+              {STARTERS.map((g) => (
+                <div key={g.topic}>
+                  <b>{g.topic}</b>
+                  <div className="lp-guide-starters">
+                    {g.questions.map((q) => <button key={q} disabled={busy} onClick={() => send(q)}>{q}</button>)}
+                  </div>
                 </div>
-                <div className="lp-guide-questions">
-                  {STARTERS[topic].questions.map((q) => (
-                    <button key={q} type="button" disabled={busy} onClick={() => send(q)}>{q}</button>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
-
-          <form className="lp-guide-form" onSubmit={submit}>
+              ))}
+            </div>
+          )}
+          <button type="button" className="lp-guide-toggle" aria-expanded={suggest} onClick={() => setSuggest((v) => !v)}>
+            {suggest ? "추천 질문 닫기 ▾" : "추천 질문 보기 ▴"}
+          </button>
+          <form onSubmit={submit}>
             <input value={text} maxLength={300} placeholder="궁금한 점을 물어보세요" aria-label="질문"
               onChange={(e) => setText(e.target.value)} disabled={busy} />
-            <button disabled={busy || !text.trim()} aria-label="보내기">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-                <path d="M12 19V5M6 11l6-6 6 6" />
-              </svg>
-            </button>
+            <button disabled={busy || !text.trim()}>보내기</button>
           </form>
         </section>
       )}
