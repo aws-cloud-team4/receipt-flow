@@ -7,7 +7,7 @@ from fastapi.responses import Response
 from receiptflow_common.auth import User, current_user, employee_only
 
 from api_service import receipt_workflows as workflows
-from api_service.schemas import PatchReceipt
+from api_service.schemas import CheckNote, PatchReceipt
 
 router = APIRouter()
 
@@ -47,6 +47,19 @@ def patch_receipt(receipt_id: str, body: PatchReceipt, user: User = Depends(empl
 def delete_receipt(receipt_id: str, user: User = Depends(employee_only)) -> Response:
     """Only a draft that was never submitted can go; images and chat go with it."""
     return workflows.delete_receipt(receipt_id=receipt_id, user=user)
+
+
+@router.put("/api/receipts/{receipt_id}/checks/{code}/note")
+def note_check(
+    receipt_id: str, code: str, body: CheckNote, user: User = Depends(employee_only)
+) -> dict[str, Any]:
+    """The employee explains a check instead of fixing it (docs/contract.md "점검 사유")."""
+    return workflows.note_check(receipt_id=receipt_id, code=code, note=body.note, user=user)
+
+
+@router.delete("/api/receipts/{receipt_id}/checks/{code}/note")
+def clear_check_note(receipt_id: str, code: str, user: User = Depends(employee_only)) -> dict[str, Any]:
+    return workflows.note_check(receipt_id=receipt_id, code=code, note=None, user=user)
 
 
 @router.post("/api/receipts/{receipt_id}/submit")

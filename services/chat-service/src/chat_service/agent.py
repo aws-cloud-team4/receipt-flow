@@ -20,8 +20,10 @@ from receiptflow_common.domain import (
     AI_FIELDS,
     CATEGORIES,
     CATEGORY_HINTS,
+    CHAT_NOTABLE_CHECKS,
     FIELD_LABELS,
     PROFILE_FIELDS,
+    blocking_checks,
     missing_required,
     normalize_fields,
     now_iso,
@@ -137,6 +139,11 @@ SYSTEM = """당신은 receiptflow의 AI 어시스턴트입니다.
   ([현재 증빙]의 결과 확인함이 false일 때만)
   "직접 수정"이라고 하면 무엇이 틀렸는지 말해 달라고 하거나, 아래 폼에서 고쳐도 된다고 안내합니다.
 - 점검 경고(금액 불일치, 중복·같은 승인번호, 심야·주말 등)는 왜 떴는지 쉽게 설명합니다.
+  [현재 증빙]의 점검 결과에 "(직원 확인: …)"이 붙은 항목은 이미 확인된 것이니 다시 꺼내지 않습니다.
+- 직원이 심야·주말·중복·같은 승인번호 경고의 이유를 말하면(예: "야근하면서 먹었어", "다른 날 같은 금액이에요")
+  note_check로 그 사유를 짧게 기록하고 "사유를 남겨 두었어요."라고만 답합니다. 같은 사유를 다시 묻지 않습니다.
+- 금액 불일치는 챗봇이 확인 처리할 수 없습니다. 쿠폰·할인처럼 영수증이 맞다고 하면 금액 칸 아래
+  [금액이 맞아요] 버튼으로 사유를 남기면 제출할 수 있다고 안내하고, 읽기가 틀렸으면 금액을 고치게 합니다.
 - 목적·분류가 채워지고 분석이 끝났으면 check_submission을 호출합니다.
   준비됐으면 "제출할 내용을 확인해 주세요."라고만 안내합니다 (화면에 최종 확인 카드가 뜸).
   빠진 게 있으면 그것만 묻습니다.
@@ -226,6 +233,22 @@ TOOLS: list[dict[str, Any]] = [
         },
     },
     {
+        "name": "note_check",
+        "description": (
+            "직원이 말한 점검 경고(심야·주말·중복·같은 승인번호)의 사유를 기록한다. "
+            "기록하면 화면에서 '확인됨'으로 바뀌고 검수 담당자에게 사유가 보인다. "
+            "금액 불일치는 기록할 수 없다."
+        ),
+        "schema": {
+            "type": "object",
+            "properties": {
+                "code": {"type": "string", "enum": list(CHAT_NOTABLE_CHECKS)},
+                "note": {"type": "string", "description": "직원이 말한 사유를 짧게 (200자 이내)"},
+            },
+            "required": ["code", "note"],
+        },
+    },
+    {
         "name": "check_submission",
         "description": "제출해도 되는지 점검한다. 준비됐으면 화면에 제출 버튼이 나타난다.",
         "schema": {"type": "object", "properties": {}},
@@ -308,7 +331,7 @@ def context(receipt: dict[str, Any], user: User) -> str:
         "지출 분류": CATEGORIES.get(f.get("category") or "", None),
         "AI가 채운 칸(사람이 아직 확인 안 함)": [FIELD_LABELS[k] for k in receipt.get("ai_filled", [])],
         "확인 필요(흐리거나 못 읽음)": [FIELD_LABELS[k] for k in receipt.get("needs_check", [])],
-        "점검 결과": [c["message"] for c in receipt.get("checks", [])],
+        "점검 결과": [check_line(c) for c in receipt.get("checks", [])],
         "빠진 필수 항목": [FIELD_LABELS[k] for k in missing_required(f)],
         "결과 확인함": bool(receipt.get("result_confirmed_at")),
         "품목 요약": (receipt.get("ai_context") or {}).get("items"),
@@ -347,6 +370,11 @@ def history_messages(history: list[dict[str, Any]]) -> list[dict[str, Any]]:
 # ── tools ────────────────────────────────────────────────────────────────────
 
 
+def check_line(c: dict[str, Any]) -> str:
+    """A check as the model sees it, with the employee's reason when there is one."""
+    return f"{c['message']} (직원 확인: {c['note']})" if c.get("note") else c["message"]
+
+
 def _label(values: dict[str, Any]) -> str:
     return ", ".join(f"{FIELD_LABELS[k]} {v if v is not None else '(비움)'}" for k, v in values.items())
 
@@ -376,7 +404,7 @@ def run_tool(name: str, args: dict[str, Any], st: TurnState) -> tuple[dict[str, 
         result = {
             "ok": True,
             "updated": {FIELD_LABELS[k]: {"before": before.get(k), "after": v} for k, v in values.items()},
-            "checks": [c["message"] for c in st.receipt.get("checks", [])],
+            "checks": [check_line(c) for c in st.receipt.get("checks", [])],
         }
         if blocked:
             result["not_changed"] = blocked
@@ -403,6 +431,20 @@ def run_tool(name: str, args: dict[str, Any], st: TurnState) -> tuple[dict[str, 
             "ok": True,
             "category": label,
         }, f"지출 분류를 {label}{ro(label)} 정했어요" if by_user else None
+    if name == "note_check":
+        code, note = args.get("code"), str(args.get("note") or "").strip()[:200]
+        if code not in CHAT_NOTABLE_CHECKS:
+            return {"ok": False, "error": "기록할 수 없는 점검입니다 (금액 불일치는 화면 버튼으로만)."}, None
+        if not note:
+            return {"ok": False, "error": "사유가 비어 있습니다."}, None
+        if not any(c["code"] == code for c in r.get("checks", [])):
+            return {"ok": False, "error": "지금 점검 결과에 없는 항목입니다."}, None
+        st.receipt = store.set_check_note(r, code, note, "chat")
+        st.changed = True
+        return {
+            "ok": True,
+            "checks": [check_line(c) for c in st.receipt.get("checks", [])],
+        }, "사유를 남겼어요"
     if name == "confirm_result":
         st.receipt = store.update_receipt(r["id"], result_confirmed_at=now_iso())
         st.changed = True
@@ -418,8 +460,8 @@ def run_tool(name: str, args: dict[str, Any], st: TurnState) -> tuple[dict[str, 
         f = r.get("fields", {})
         pending = r["analysis_status"] in ("waiting", "queued", "processing")
         missing = [FIELD_LABELS[k] for k in missing_required(f)]
-        errors = [c["message"] for c in r.get("checks", []) if c["level"] == "error"]
-        warnings = [c["message"] for c in r.get("checks", []) if c["level"] == "warn"]
+        errors = [c["message"] for c in blocking_checks(r.get("checks", []))]
+        warnings = [check_line(c) for c in r.get("checks", []) if c["level"] == "warn" or c.get("note")]
         # a category the AI put in (at analysis or as a suggestion) needs the person's yes first
         unconfirmed = (
             [FIELD_LABELS["category"]] if f.get("category") and "category" in r.get("ai_filled", []) else []

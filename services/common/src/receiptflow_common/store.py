@@ -8,7 +8,7 @@ from boto3.dynamodb.conditions import Key
 from botocore.exceptions import ClientError
 
 from . import aws
-from .domain import OLD_CODES, duplicate_key, now_iso, run_checks
+from .domain import OLD_CODES, attach_notes, check_sig, duplicate_key, now_iso, run_checks
 
 META = "META"
 
@@ -155,14 +155,37 @@ def apply_fields(
     duplicate = find_duplicate(receipt["owner_sub"], key, receipt["id"]) if key else None
     approval = merged.get("approval_number")
     same_approval = find_same_approval(receipt["owner_sub"], approval, receipt["id"]) if approval else None
+    checks, notes = attach_notes(
+        run_checks(merged, duplicate, same_approval), receipt.get("check_notes"), merged
+    )
     return update_receipt(
         receipt["id"],
         expect=expect,
         fields=merged,
-        checks=run_checks(merged, duplicate, same_approval),
+        checks=checks,
+        check_notes=notes,
         dup_key=key,
         **changes,
     )
+
+
+def set_check_note(
+    receipt: dict[str, Any],
+    code: str,
+    note: str | None,
+    by: str,
+    expect: dict[str, tuple[str, ...]] | None = None,
+) -> dict[str, Any]:
+    """Record (or with None, remove) the employee's reason for one current check."""
+    fields = receipt.get("fields", {})
+    notes = dict(receipt.get("check_notes") or {})
+    notes.pop(code, None)
+    check = next((c for c in receipt.get("checks", []) if c["code"] == code), None)
+    if note is not None and check is not None:
+        notes[code] = {"note": note, "by": by, "at": now_iso(), "sig": check_sig(check, fields)}
+    plain = [{k: v for k, v in c.items() if k != "note"} for c in receipt.get("checks", [])]
+    checks, notes = attach_notes(plain, notes, fields)
+    return update_receipt(receipt["id"], expect=expect, checks=checks, check_notes=notes)
 
 
 def find_duplicate(owner_sub: str, key: str, exclude_id: str) -> str | None:

@@ -16,7 +16,9 @@ from receiptflow_common.domain import (
     EDITABLE_STATUSES,
     EXPENSE_FIELDS,
     FIELD_LABELS,
+    NOTABLE_CHECKS,
     PROFILE_FIELDS,
+    blocking_checks,
     missing_required,
     normalize_fields,
     now_iso,
@@ -153,6 +155,22 @@ def patch_receipt(receipt_id: str, body: PatchReceipt, *, user: User) -> dict[st
         raise ApiError(409, "not_editable", "제출된 증빙은 수정할 수 없습니다.") from exc
 
 
+def note_check(receipt_id: str, code: str, note: str | None, *, user: User) -> dict[str, Any]:
+    """Record or clear the employee's reason for a check (docs/contract.md "점검 사유")."""
+    receipt = _load(receipt_id, user, owner_only=True)
+    _require_editable(receipt)
+    if code not in NOTABLE_CHECKS:
+        raise ApiError(400, "not_notable", "이 점검은 사유 대신 내용을 고쳐야 합니다.")
+    if note is not None and not any(c["code"] == code for c in receipt.get("checks", [])):
+        raise ApiError(404, "check_not_found", "지금 점검 결과에 없는 항목입니다.")
+    try:
+        return store.set_check_note(
+            receipt, code, note, "employee", expect={"review_status": EDITABLE_STATUSES}
+        )
+    except store.ConflictError as exc:
+        raise ApiError(409, "not_editable", "제출된 증빙은 수정할 수 없습니다.") from exc
+
+
 def delete_receipt(receipt_id: str, *, user: User) -> Response:
     """Only a draft that was never submitted can go; images and chat go with it."""
     receipt = _load(receipt_id, user, owner_only=True)
@@ -176,7 +194,7 @@ def submit(receipt_id: str, *, user: User) -> dict[str, Any]:
     if missing:
         labels = ", ".join(FIELD_LABELS[k] for k in missing)
         raise ApiError(422, "missing_fields", f"필수 항목을 입력해 주세요: {labels}", fields=missing)
-    if any(c["level"] == "error" for c in receipt.get("checks", [])):
+    if blocking_checks(receipt.get("checks", [])):
         raise ApiError(422, "check_failed", "금액·날짜 오류를 먼저 확인해 주세요.")
     now = now_iso()
     try:
