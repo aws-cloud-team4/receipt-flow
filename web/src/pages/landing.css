@@ -445,36 +445,41 @@
 
 /* guide chat: floating button + panel (components/landing/GuideChat.tsx) */
 .lp-guide-fab {
-  position: fixed; right: 24px; bottom: 24px; z-index: 40; display: inline-flex; align-items: center; gap: 8px;
+  position: fixed; left: 24px; bottom: 24px; z-index: 40; display: inline-flex; align-items: center; gap: 8px;
   border: 0; border-radius: 40px; padding: 13px 20px; background: var(--ink); color: #fff;
   font-size: 15px; font-weight: 700; box-shadow: 0 8px 24px rgba(22, 29, 38, 0.25); cursor: pointer;
   transition: transform 0.15s, background 0.15s;
 }
 .lp-guide-fab:hover { background: #2c3644; transform: translateY(-2px); }
+/* a tall panel on the left; on wide screens the page moves right by the panel width so nothing is
+   covered (narrower screens: the panel lies over the page) */
+.lp { --guide-w: clamp(360px, 32vw, 520px); }
+.lp:has(> .lp-guide) { padding-left: var(--guide-w); }
+.lp:has(> .lp-guide) .lp-guide-fab { display: none; }
 .lp-guide {
-  position: fixed; right: 24px; bottom: 24px; z-index: 40; width: min(400px, calc(100vw - 32px));
-  height: min(600px, calc(100vh - 48px)); display: flex; flex-direction: column;
-  background: #fff; border: 1px solid #e3e6eb; border-radius: 18px; box-shadow: 0 16px 48px rgba(22, 29, 38, 0.22);
-  overflow: hidden;
+  position: fixed; left: 0; top: 0; bottom: 0; z-index: 40; width: var(--guide-w); height: 100dvh;
+  display: flex; flex-direction: column; background: #fff; border-right: 1px solid #e3e6eb;
+  box-shadow: 16px 0 48px rgba(22, 29, 38, 0.18); overflow: hidden; animation: lp-guide-in 0.22s ease-out;
 }
-.lp-guide header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; background: var(--ink); color: #fff; }
-.lp-guide header b { display: block; font-size: 15px; }
-.lp-guide header span { font-size: 12px; color: #c9d1dc; }
+@keyframes lp-guide-in { from { transform: translateX(-24px); opacity: 0; } to { transform: none; opacity: 1; } }
+.lp-guide header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 18px 22px; background: var(--ink); color: #fff; }
+.lp-guide header b { display: block; font-size: 18px; }
+.lp-guide header span { font-size: 13px; color: #c9d1dc; }
 .lp-guide header button { border: 0; background: none; color: #fff; font-size: 16px; cursor: pointer; padding: 4px; }
-.lp-guide-list { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 10px; background: var(--gray); }
-.lp-guide-msg { max-width: 88%; padding: 10px 13px; border-radius: 14px; font-size: 14px; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; }
+.lp-guide-list { flex: 1; overflow-y: auto; padding: 20px 22px; display: flex; flex-direction: column; gap: 12px; background: var(--gray); }
+.lp-guide-msg { max-width: 92%; padding: 12px 15px; border-radius: 14px; font-size: 15px; line-height: 1.7; white-space: pre-wrap; overflow-wrap: anywhere; }
 .lp-guide-msg.assistant { align-self: flex-start; background: #fff; color: #222; border: 1px solid #e3e6eb; border-bottom-left-radius: 4px; }
 .lp-guide-msg.user { align-self: flex-end; background: var(--hero); color: #fff; border-bottom-right-radius: 4px; }
 .lp-guide-msg.error { background: #fdecec; border-color: #f5c2c2; color: #9b0f0f; }
 .lp-guide-msg code { font-family: Consolas, monospace; font-size: 12.5px; background: #eef1f6; border-radius: 4px; padding: 0 4px; }
 .lp-guide-starters { display: flex; flex-wrap: wrap; gap: 6px; }
 .lp-guide-starters button {
-  border: 1px solid var(--hero); background: #fff; color: #3b56c9; border-radius: 999px; padding: 6px 12px;
-  font-size: 13px; font-weight: 600; cursor: pointer;
+  border: 1px solid var(--hero); background: #fff; color: #3b56c9; border-radius: 999px; padding: 8px 14px;
+  font-size: 14px; font-weight: 600; cursor: pointer;
 }
 .lp-guide-starters button:hover { background: #eef1fe; }
-.lp-guide form { display: flex; gap: 8px; padding: 12px; border-top: 1px solid #e3e6eb; background: #fff; }
-.lp-guide input { flex: 1; min-width: 0; height: 40px; padding: 0 12px; border: 1px solid #d5d9e0; border-radius: 10px; font-size: 16px; }
+.lp-guide form { display: flex; gap: 8px; padding: 14px 22px calc(14px + env(safe-area-inset-bottom)); border-top: 1px solid #e3e6eb; background: #fff; }
+.lp-guide input { flex: 1; min-width: 0; height: 46px; padding: 0 12px; border: 1px solid #d5d9e0; border-radius: 10px; font-size: 16px; }
 .lp-guide form button {
   border: 0; border-radius: 10px; padding: 0 16px; background: var(--ink); color: #fff; font-weight: 700; font-size: 14px; cursor: pointer;
 }
@@ -484,8 +489,16 @@
 .lp-guide-dots i:nth-child(2) { animation-delay: 0.15s; }
 .lp-guide-dots i:nth-child(3) { animation-delay: 0.3s; }
 @keyframes lp-guide-dot { 0%, 80%, 100% { opacity: 0.3; transform: translateY(0); } 40% { opacity: 1; transform: translateY(-3px); } }
-@media (max-width: 560px) {
-  .lp-guide-fab { right: 16px; bottom: 16px; padding: 12px 16px; font-size: 14px; }
-  .lp-guide { right: 0; bottom: 0; width: 100vw; height: min(78vh, 640px); border-radius: 18px 18px 0 0; }
+@media (max-width: 1099px) {
+  .lp:has(> .lp-guide) { padding-left: 0; }
+  .lp-guide { width: min(440px, 100vw); }
 }
-@media (prefers-reduced-motion: reduce) { .lp-guide-dots i { animation: none; } }
+@media (max-width: 560px) {
+  .lp-guide { width: 100vw; }
+  .lp-guide-fab { left: 16px; bottom: 16px; padding: 12px 16px; font-size: 14px; }
+  .lp-guide { border-right: 0; }
+  .lp-guide header { padding: 14px 16px; }
+  .lp-guide-list { padding: 14px 16px; }
+  .lp-guide form { padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); }
+}
+@media (prefers-reduced-motion: reduce) { .lp-guide-dots i, .lp-guide { animation: none; } }
