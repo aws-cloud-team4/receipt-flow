@@ -1,13 +1,16 @@
 /* Public intro page (signed out). Everything is scoped under .lp / .demo. */
 .lp { --ink: #161d26; --gray: #f3f3f7; --hero: #5b7cf2; background: #fff; color: #333; min-height: 100%; }
+.lp [id] { scroll-margin-top: calc(var(--bar-h) + 84px); } /* in-page links land below the two sticky bars */
 .lp-wrap { max-width: 1200px; margin: 0 auto; padding: 0 clamp(16px, 5vw, 48px); }
 
 /* utility bar + nav */
-.lp-util { background: #232b37; color: #fff; font-size: 13px; }
-.lp-util-row { display: flex; justify-content: flex-end; align-items: center; gap: 22px; height: 40px; }
+/* the dark bar is the app's top bar (styles/shell.css .topbar): same height and colour, and it stays put */
+.lp { --bar-h: 52px; }
+.lp-util { position: sticky; top: 0; z-index: 21; background: var(--header); color: #fff; font-size: 13px; }
+.lp-util-row { display: flex; justify-content: flex-end; align-items: center; gap: 22px; height: var(--bar-h); }
 .lp-util a { color: #fff; }
 .lp-util a:hover { text-decoration: underline; }
-.lp-nav { position: sticky; top: 0; z-index: 20; background: #fff; border-bottom: 1px solid #e3e6eb; }
+.lp-nav { position: sticky; top: var(--bar-h); z-index: 20; background: #fff; border-bottom: 1px solid #e3e6eb; }
 .lp-nav-row { display: flex; align-items: center; gap: 26px; height: 72px; }
 /* .lp prefix: the app stylesheet (.brand is white) loads after this file */
 .lp .lp-brand { color: var(--ink); font-size: 26px; }
@@ -443,80 +446,121 @@
   .lp-usage { grid-template-columns: minmax(0, 1fr); }
 }
 
-/* guide chat: floating button + panel (components/landing/GuideChat.tsx) */
-.lp-guide-fab {
-  position: fixed; left: 24px; bottom: 24px; z-index: 40; display: inline-flex; align-items: center; gap: 8px;
-  border: 0; border-radius: 40px; padding: 13px 20px; background: var(--ink); color: #fff;
-  font-size: 15px; font-weight: 700; box-shadow: 0 8px 24px rgba(22, 29, 38, 0.25); cursor: pointer;
-  transition: transform 0.15s, background 0.15s;
+/* guide chat: floating button + panel (components/landing/GuideChat.tsx)
+   Laid out like the assistant panel of the AWS console (title bar with an accent line, centred mark,
+   outlined pills, pill action button) in the page's own colours (white, ink, hero blue), docked on the left. On wide screens the page moves right by
+   the panel width so nothing is covered; narrower screens lay it over the page; phones use the whole screen. */
+.lp {
+  --guide-w: clamp(380px, 31vw, 500px); --g-pad: clamp(16px, 2vw, 28px);
+  --g-bg: #fff; --g-raised: var(--gray); --g-line: #e3e6eb; --g-text: #333; --g-muted: #6b7686;
+  --g-blue: #3b56c9; --g-accent: linear-gradient(90deg, #5b7cf2, #a36cf0);
 }
-.lp-guide-fab:hover { background: #2c3644; transform: translateY(-2px); }
-/* a tall panel on the left; on wide screens the page moves right by the panel width so nothing is
-   covered (narrower screens: the panel lies over the page) */
-.lp { --guide-w: clamp(360px, 32vw, 520px); }
 .lp:has(> .lp-guide) { padding-left: var(--guide-w); }
+/* like the console: the dark top bar runs across the full width, above both the panel and the page */
+.lp:has(> .lp-guide) .lp-util { margin-left: calc(-1 * var(--guide-w)); }
 .lp:has(> .lp-guide) .lp-guide-fab { display: none; }
+
+.lp-guide-fab {
+  position: fixed; left: 24px; bottom: 24px; z-index: 40; display: grid; place-items: center;
+  width: 60px; height: 60px; border: 0; border-radius: 50%; cursor: pointer;
+  background: linear-gradient(135deg, #5b7cf2, #a36cf0); box-shadow: 0 10px 28px rgba(91, 124, 242, 0.45);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.lp-guide-fab:hover { transform: translateY(-3px) scale(1.04); box-shadow: 0 14px 32px rgba(91, 124, 242, 0.55); }
+
 .lp-guide {
-  position: fixed; left: 0; top: 0; bottom: 0; z-index: 40; width: var(--guide-w); height: 100dvh;
-  display: flex; flex-direction: column; background: #fff; border-right: 1px solid #e3e6eb;
-  box-shadow: 16px 0 48px rgba(22, 29, 38, 0.18); overflow: hidden; animation: lp-guide-in 0.22s ease-out;
+  position: fixed; left: 0; top: var(--bar-h); bottom: 0; z-index: 40; width: var(--guide-w);
+  display: flex; flex-direction: column; background: var(--g-bg); color: var(--g-text);
+  border-right: 8px solid var(--gray); box-shadow: inset -1px 0 0 var(--g-line), 1px 0 0 var(--g-line); overflow: hidden; animation: lp-guide-in 0.2s ease-out;
+  font-size: 15px; line-height: 1.6;
 }
 @keyframes lp-guide-in { from { transform: translateX(-24px); opacity: 0; } to { transform: none; opacity: 1; } }
-.lp-guide header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 18px 22px; background: var(--ink); color: #fff; }
-.lp-guide header b { display: block; font-size: 18px; }
-.lp-guide header span { font-size: 13px; color: #c9d1dc; }
-.lp-guide header button { border: 0; background: none; color: #fff; font-size: 16px; cursor: pointer; padding: 4px; }
-.lp-guide-list { flex: 1; overflow-y: auto; padding: 20px 22px; display: flex; flex-direction: column; gap: 12px; background: var(--gray); }
-.lp-guide-msg { max-width: 92%; padding: 12px 15px; border-radius: 14px; font-size: 15px; line-height: 1.7; white-space: pre-wrap; overflow-wrap: anywhere; }
-.lp-guide-msg.assistant { align-self: flex-start; background: #fff; color: #222; border: 1px solid #e3e6eb; border-bottom-left-radius: 4px; }
-.lp-guide-msg.user { align-self: flex-end; background: var(--hero); color: #fff; border-bottom-right-radius: 4px; }
-.lp-guide-msg.error { background: #fdecec; border-color: #f5c2c2; color: #9b0f0f; }
-.lp-guide-msg code { font-family: Consolas, monospace; font-size: 12.5px; background: #eef1f6; border-radius: 4px; padding: 0 4px; }
-.lp-guide-starters { display: flex; flex-wrap: wrap; gap: 6px; }
-.lp-guide-starters button {
-  border: 1px solid var(--hero); background: #fff; color: #3b56c9; border-radius: 999px; padding: 8px 14px;
-  font-size: 14px; font-weight: 600; cursor: pointer;
-}
-.lp-guide-starters button:hover { background: #eef1fe; }
-.lp-guide form { display: flex; gap: 8px; padding: 14px 22px calc(14px + env(safe-area-inset-bottom)); border-top: 1px solid #e3e6eb; background: #fff; }
-.lp-guide input { flex: 1; min-width: 0; height: 46px; padding: 0 12px; border: 1px solid #d5d9e0; border-radius: 10px; font-size: 16px; }
-.lp-guide form button {
-  border: 0; border-radius: 10px; padding: 0 16px; background: var(--ink); color: #fff; font-weight: 700; font-size: 14px; cursor: pointer;
-}
-.lp-guide form button:disabled { opacity: 0.45; cursor: default; }
-.lp-guide-dots { display: inline-flex; gap: 4px; padding: 4px 0; }
-.lp-guide-dots i { width: 6px; height: 6px; border-radius: 50%; background: #9aa5b4; animation: lp-guide-dot 1s infinite ease-in-out; }
+
+/* title bar: name on the left with the purple line under it, small icon buttons on the right */
+.lp-guide header { flex: none; position: relative; display: flex; align-items: center; gap: 4px; height: 72px; padding: 0 calc(var(--g-pad) - 8px) 0 var(--g-pad); border-bottom: 1px solid var(--g-line); }
+.lp-guide header::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; background: var(--g-accent); }
+.lp-guide header b { flex: 1; min-width: 0; font-size: 20px; font-weight: 700; letter-spacing: -0.4px; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lp-guide header button { flex: none; display: grid; place-items: center; width: 40px; height: 40px; border: 0; border-radius: 50%; background: none; color: var(--ink); cursor: pointer; }
+.lp-guide header button:hover:not(:disabled) { background: var(--g-raised); }
+.lp-guide header button:disabled { opacity: 0.35; cursor: default; }
+
+/* messages */
+.lp-guide-list { flex: 1; min-height: 0; overflow-y: auto; padding: 20px var(--g-pad); display: flex; flex-direction: column; gap: 16px; scrollbar-width: thin; scrollbar-color: #d5d9e0 transparent; }
+.lp-guide-hello { margin: auto 0; display: grid; justify-items: center; gap: 10px; text-align: center; padding: 4px 0; }
+.lp-guide-hello svg { width: 56px; height: 56px; }
+.lp-guide-hello b { font-size: clamp(18px, 1.45vw, 21px); font-weight: 600; letter-spacing: -0.5px; line-height: 1.35; color: var(--ink); }
+.lp-guide-hello p { margin: 0; color: var(--g-text); font-size: 15px; line-height: 1.65; color: #444; max-width: 380px; }
+.lp-guide-msg { overflow-wrap: anywhere; font-size: 15px; line-height: 1.75; }
+.lp-guide-msg.user { align-self: flex-end; max-width: 88%; background: var(--g-raised); color: var(--ink); font-weight: 600; padding: 10px 18px; border-radius: 22px; white-space: pre-wrap; }
+.lp-guide-msg.assistant { align-self: stretch; color: var(--g-text); }
+.lp-guide-msg.error { align-self: stretch; color: #9b0f0f; border: 1px solid #f5c2c2; background: #fdecec; border-radius: 8px; padding: 10px 14px; }
+.lp-guide-msg code { font-family: Consolas, monospace; font-size: 12.5px; background: var(--gray); color: var(--ink); border-radius: 4px; padding: 1px 5px; }
+.lp-guide-dots { display: inline-flex; gap: 4px; padding: 6px 0; }
+.lp-guide-dots i { width: 6px; height: 6px; border-radius: 50%; background: #8f9bff; animation: lp-guide-dot 1s infinite ease-in-out; }
 .lp-guide-dots i:nth-child(2) { animation-delay: 0.15s; }
 .lp-guide-dots i:nth-child(3) { animation-delay: 0.3s; }
 @keyframes lp-guide-dot { 0%, 80%, 100% { opacity: 0.3; transform: translateY(0); } 40% { opacity: 1; transform: translateY(-3px); } }
-@media (max-width: 1099px) {
-  .lp:has(> .lp-guide) { padding-left: 0; }
-  .lp-guide { width: min(440px, 100vw); }
-}
-@media (max-width: 560px) {
-  .lp-guide { width: 100vw; }
-  .lp-guide-fab { left: 16px; bottom: 16px; padding: 12px 16px; font-size: 14px; }
-  .lp-guide { border-right: 0; }
-  .lp-guide header { padding: 14px 16px; }
-  .lp-guide-list { padding: 14px 16px; }
-  .lp-guide form { padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); }
-}
-@media (prefers-reduced-motion: reduce) { .lp-guide-dots i, .lp-guide { animation: none; } }
-/* guide answers in a small Markdown subset (GuideChat.tsx Markdown) */
-.lp-guide-msg.assistant { white-space: normal; }
-.lp-guide-msg.assistant:has(.md-table) { max-width: 100%; width: 100%; }
-.lp-guide-msg .md > * + * { margin-top: 8px; }
+
+/* answers: the small Markdown subset (Markdown in GuideChat.tsx) */
+.lp-guide-msg .md > * + * { margin-top: 10px; }
 .lp-guide-msg .md p { margin: 0; white-space: pre-wrap; }
-.lp-guide-msg .md .md-h { font-weight: 700; font-size: 15.5px; color: var(--ink); margin-top: 14px; }
+.lp-guide-msg .md .md-h { font-weight: 700; font-size: 17px; letter-spacing: -0.3px; color: var(--ink); margin-top: 20px; }
 .lp-guide-msg .md .md-h:first-child { margin-top: 0; }
+.lp-guide-msg .md b { color: var(--ink); }
 .lp-guide-msg .md ul, .lp-guide-msg .md ol { margin: 0; padding-left: 20px; }
-.lp-guide-msg .md li + li { margin-top: 3px; }
-.lp-guide-msg .md-table { overflow-x: auto; border: 1px solid #e3e6eb; border-radius: 8px; }
-.lp-guide-msg .md-table table { border-collapse: collapse; width: 100%; font-size: 13px; line-height: 1.5; }
-.lp-guide-msg .md-table th { background: #f3f5f8; text-align: left; font-weight: 700; white-space: nowrap; }
-.lp-guide-msg .md-table th, .lp-guide-msg .md-table td { padding: 6px 9px; border-bottom: 1px solid #eceff4; vertical-align: top; }
+.lp-guide-msg .md li + li { margin-top: 4px; }
+.lp-guide-msg .md-table { overflow-x: auto; border: 1px solid var(--g-line); border-radius: 12px; }
+.lp-guide-msg .md-table table { border-collapse: collapse; width: 100%; font-size: 13.5px; line-height: 1.55; }
+.lp-guide-msg .md-table th { background: var(--g-raised); color: var(--ink); text-align: left; font-weight: 700; white-space: nowrap; }
+.lp-guide-msg .md-table th, .lp-guide-msg .md-table td { padding: 7px 10px; border-bottom: 1px solid #eceff4; vertical-align: top; }
 .lp-guide-msg .md-table tr:last-child td { border-bottom: 0; }
-.lp-guide-msg .md-table td code { overflow-wrap: anywhere; word-break: break-all; }
 .lp-guide-msg .md-table td { min-width: 96px; }
 .lp-guide-msg .md-table td:first-child { min-width: 0; }
-.lp-guide-msg .md-code { margin: 0; padding: 10px 12px; background: #0f1b2a; color: #e6edf3; border-radius: 8px; font: 12.5px/1.5 Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
+.lp-guide-msg .md-table td code { overflow-wrap: anywhere; word-break: break-all; }
+.lp-guide-msg .md-code { margin: 0; padding: 10px 12px; background: var(--ink); border: 0; color: #e6edf3; border-radius: 8px; font: 12.5px/1.55 Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
+
+/* suggested questions: console-style outlined pills, opened and closed with the link above the input */
+.lp-guide-tray { flex: none; max-height: 58%; overflow-y: auto; padding: 14px var(--g-pad) 22px; border-top: 1px solid var(--g-line); display: grid; gap: 10px;
+  scrollbar-width: none; -webkit-mask-image: linear-gradient(#000 calc(100% - 30px), transparent); mask-image: linear-gradient(#000 calc(100% - 30px), transparent); }
+.lp-guide-tray::-webkit-scrollbar { display: none; }
+.lp-guide-tray b { display: block; margin-bottom: 6px; font-size: 13px; font-weight: 700; color: var(--g-muted); }
+.lp-guide-starters { display: flex; flex-wrap: wrap; gap: 6px; }
+/* before the first question the welcome keeps its height and the questions take the rest of the panel */
+.lp-guide-list:has(.lp-guide-hello) { flex: none; }
+.lp-guide-list:has(.lp-guide-hello) + .lp-guide-tray { flex: 1; min-height: 0; max-height: none; align-content: start; }
+.lp-guide-list:has(.lp-guide-hello):not(:has(+ .lp-guide-tray)) { flex: 1; }
+.lp-guide-starters button {
+  border: 1.5px solid #5b7cf2; background: #fff; color: var(--g-blue); border-radius: 40px; padding: 6px 14px;
+  font-size: 14px; font-weight: 700; line-height: 1.5; text-align: left; cursor: pointer; transition: background 0.15s, color 0.15s;
+}
+.lp-guide-starters button:hover:not(:disabled) { background: #eef1fe; }
+.lp-guide-starters button:disabled { opacity: 0.45; cursor: default; }
+.lp-guide-toggle { flex: none; border: 0; border-top: 1px solid var(--g-line); background: none; color: var(--g-blue); font-size: 14px; font-weight: 700; padding: 12px var(--g-pad) 4px; text-align: left; cursor: pointer; }
+.lp-guide-toggle:hover { text-decoration: underline; }
+
+/* input: field + the page's ink pill button */
+.lp-guide form { flex: none; display: flex; gap: 8px; padding: 8px var(--g-pad) calc(20px + env(safe-area-inset-bottom)); }
+.lp-guide input { flex: 1; min-width: 0; height: 46px; padding: 0 20px; border: 1px solid #c5cad3; border-radius: 40px; background: #fff; color: var(--ink); font-size: 16px; }
+.lp-guide input::placeholder { color: #8a94a3; }
+.lp-guide input:focus { outline: none; border-color: #5b7cf2; box-shadow: 0 0 0 3px rgba(91, 124, 242, 0.2); }
+.lp-guide form button { flex: none; border: 0; border-radius: 40px; padding: 0 24px; height: 46px; background: var(--ink); color: #fff; font-size: 15px; font-weight: 700; cursor: pointer; }
+.lp-guide form button:hover:not(:disabled) { background: #2c3644; }
+.lp-guide form button:disabled { background: #e3e6eb; color: #9aa5b4; cursor: default; }
+
+@media (max-width: 1099px) {
+  .lp:has(> .lp-guide) { padding-left: 0; }
+  .lp:has(> .lp-guide) .lp-util { margin-left: 0; }
+  .lp-guide { top: 0; width: min(440px, 100vw); border-right: 1px solid var(--g-line); box-shadow: 16px 0 48px rgba(22, 29, 38, 0.2); }
+}
+@media (max-width: 560px) {
+  .lp-guide { width: 100vw; border-right: 0; }
+  .lp-guide-fab { left: 16px; bottom: 16px; width: 56px; height: 56px; }
+  .lp-guide-hello p { font-size: 15px; }
+  .lp-guide-list { padding-top: 18px; padding-bottom: 14px; }
+  .lp-guide-tray { max-height: 50%; }
+  .lp-guide header { height: 60px; }
+  .lp-guide header b { font-size: 18px; }
+  .lp-guide form { padding-bottom: calc(12px + env(safe-area-inset-bottom)); }
+  .lp-guide form button { padding: 0 18px; }
+}
+@media (prefers-reduced-motion: reduce) { .lp-guide-dots i, .lp-guide { animation: none; } }

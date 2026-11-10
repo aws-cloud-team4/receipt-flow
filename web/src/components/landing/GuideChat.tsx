@@ -9,11 +9,32 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 interface Source { file: string; title: string }
 interface Line { role: "user" | "assistant"; text: string; sources?: Source[]; error?: boolean } // sources: kept, not shown
 
-const STARTERS = [
-  "receiptflow는 어떤 서비스인가요?",
-  "영수증 한 장은 어떻게 처리되나요?",
-  "AI가 잘못 읽으면 어떻게 되나요?",
-  "어떤 AWS 서비스를 썼나요?",
+/** Suggested questions: only the core of the build (structure, AWS, AI). Anything else can be typed. */
+const STARTERS: { topic: string; questions: string[] }[] = [
+  {
+    topic: "구조",
+    questions: [
+      "전체 아키텍처를 설명해 주세요",
+      "전체 API를 알려 주세요",
+      "DynamoDB 데이터 구조를 알려 주세요",
+    ],
+  },
+  {
+    topic: "AWS",
+    questions: [
+      "어떤 AWS 서비스를 어떻게 썼나요?",
+      "EKS 구성과 자동 확장을 설명해 주세요",
+      "왜 Lambda가 아니라 EKS인가요?",
+    ],
+  },
+  {
+    topic: "AI",
+    questions: [
+      "Bedrock 모델을 어떻게 나눠 쓰나요?",
+      "AI가 틀리지 않게 어떻게 통제하나요?",
+      "정확도와 평가 방법을 알려 주세요",
+    ],
+  },
 ];
 
 async function ask(question: string, history: Line[], onText: (t: string) => void): Promise<Source[]> {
@@ -122,15 +143,26 @@ function Markdown({ text }: { text: string }) {
   return <div className="md">{blocks}</div>;
 }
 
+/** The AI sparkle: one large four-point star with a small one beside it (the open button). */
+function BotIcon({ size }: { size: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 32 32" fill="#fff" aria-hidden>
+      <path d="M14 4c.9 6.200 3.800 9.100 10 10-6.200.9-9.100 3.800-10 10-.9-6.200-3.800-9.100-10-10 6.200-.9 9.100-3.800 10-10z" />
+      <path d="M25 19c.4 2.700 1.300 3.600 4 4-2.700.4-3.600 1.300-4 4-.4-2.700-1.300-3.600-4-4 2.700-.4 3.600-1.300 4-4z" />
+    </svg>
+  );
+}
+
 export default function GuideChat() {
   const [open, setOpen] = useState(false);
   const [lines, setLines] = useState<Line[]>([]);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
+  const [suggest, setSuggest] = useState(true); // the suggested-questions tray; reopened any time
   const list = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    list.current?.scrollTo({ top: list.current.scrollHeight });
+    list.current?.scrollTo({ top: lines.length ? list.current.scrollHeight : 0 }); // the welcome stays at the top
   }, [lines, open]);
 
   async function send(question: string) {
@@ -138,6 +170,7 @@ export default function GuideChat() {
     if (!q || busy) return;
     const history = lines;
     setText("");
+    setSuggest(false);
     setBusy(true);
     setLines([...history, { role: "user", text: q }, { role: "assistant", text: "" }]);
     const update = (patch: (last: Line) => Line) =>
@@ -160,29 +193,32 @@ export default function GuideChat() {
   return (
     <>
       {!open && (
-        <button className="lp-guide-fab" onClick={() => setOpen(true)} aria-label="receiptflow에 물어보기">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
-            <path d="M4 5h16v11H9l-5 4z" /><path d="M8 10h8M8 13h5" />
-          </svg>
-          <span>receiptflow에 물어보기</span>
+        <button className="lp-guide-fab" onClick={() => setOpen(true)} aria-label="AI 안내 챗봇 열기" title="receiptflow에 물어보기">
+          <BotIcon size={32} />
         </button>
       )}
       {open && (
-        <section className="lp-guide" role="dialog" aria-label="receiptflow 안내 챗봇">
+        <section className="lp-guide" role="dialog" aria-label="receiptflow AI 챗봇">
           <header>
-            <div>
-              <b>receiptflow 안내</b>
-              <span>프로젝트 문서를 바탕으로 답해요</span>
-            </div>
-            <button onClick={() => setOpen(false)} aria-label="닫기">✕</button>
+            <b>receiptflow AI 챗봇</b>
+            <button disabled={busy || lines.length === 0} onClick={() => { setLines([]); setSuggest(true); }} aria-label="새 대화" title="새 대화">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden><path d="M12 5v14M5 12h14" /></svg>
+            </button>
+            <button onClick={() => setOpen(false)} aria-label="닫기" title="닫기">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M15 5l-7 7 7 7" /></svg>
+            </button>
           </header>
           <div className="lp-guide-list" ref={list}>
-            <div className="lp-guide-msg assistant">
-              서비스가 어떻게 동작하는지, AI·AWS 구조, 사용법까지 무엇이든 물어보세요.
-            </div>
             {lines.length === 0 && (
-              <div className="lp-guide-starters">
-                {STARTERS.map((s) => <button key={s} onClick={() => send(s)}>{s}</button>)}
+              <div className="lp-guide-hello">
+                <svg width="72" height="72" viewBox="0 0 72 72" aria-hidden>
+                  <defs><linearGradient id="lp-guide-hex" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#5b7cf2" /><stop offset="1" stopColor="#a36cf0" /></linearGradient></defs>
+                  <path d="M36 4l27 15.500v33L36 68 9 52.500v-33z" fill="url(#lp-guide-hex)" />
+                  <path d="M33 20c1.100 8 4.900 11.800 13 13-8.100 1.200-11.900 5-13 13-1.100-8-4.900-11.800-13-13 8.100-1.200 11.900-5 13-13z" fill="#fff" />
+                  <path d="M47 39c.5 3.400 1.600 4.500 5 5-3.400.5-4.500 1.600-5 5-.5-3.400-1.600-4.500-5-5 3.400-.5 4.500-1.600 5-5z" fill="#fff" />
+                </svg>
+                <b>안녕하세요, receiptflow AI 챗봇이에요</b>
+                <p>이 프로젝트에 대해 궁금한 것은 무엇이든 편하게 물어보세요. 어디서부터 물어볼지 고민되면 아래 추천 질문을 눌러 보세요.</p>
               </div>
             )}
             {lines.map((l, i) => (
@@ -192,6 +228,21 @@ export default function GuideChat() {
               </div>
             ))}
           </div>
+          {suggest && (
+            <div className="lp-guide-tray" aria-label="추천 질문">
+              {STARTERS.map((g) => (
+                <div key={g.topic}>
+                  <b>{g.topic}</b>
+                  <div className="lp-guide-starters">
+                    {g.questions.map((q) => <button key={q} disabled={busy} onClick={() => send(q)}>{q}</button>)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          <button type="button" className="lp-guide-toggle" aria-expanded={suggest} onClick={() => setSuggest((v) => !v)}>
+            {suggest ? "추천 질문 닫기 ▾" : "추천 질문 보기 ▴"}
+          </button>
           <form onSubmit={submit}>
             <input value={text} maxLength={300} placeholder="궁금한 점을 물어보세요" aria-label="질문"
               onChange={(e) => setText(e.target.value)} disabled={busy} />

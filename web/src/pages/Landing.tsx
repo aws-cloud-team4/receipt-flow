@@ -77,7 +77,7 @@ export default function Landing({ me }: { me?: Me }) {
 
       <header className="lp-nav">
         <div className="lp-wrap lp-nav-row">
-          <Link to="/" className="brand lp-brand" aria-label="receiptflow">receipt<span>flow</span></Link>
+          <a href="#top" className="brand lp-brand" aria-label="receiptflow" onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: "smooth" }); }}>receipt<span>flow</span></a>
           <span className="lp-divider" />
           <nav className="lp-links" aria-label="소개">
             <a href="#features">기능</a>
