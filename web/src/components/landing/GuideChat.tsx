@@ -198,17 +198,17 @@ export default function GuideChat() {
         </button>
       )}
       {open && (
-        <section className="lp-guide" role="dialog" aria-label="receiptflow 안내 챗봇">
+        <section className="lp-guide" role="dialog" aria-label="receiptflow AI 챗봇">
           <header>
             <div>
-              <b>receiptflow 안내</b>
-              <span>아키텍처·API·AWS·AI, 프로젝트 문서로 답해요</span>
+              <b>receiptflow AI 챗봇</b>
+              <span>receiptflow의 무엇이든 물어보세요</span>
             </div>
             <button onClick={() => setOpen(false)} aria-label="닫기">✕</button>
           </header>
           <div className="lp-guide-list" ref={list}>
             <div className="lp-guide-msg assistant">
-              전체 아키텍처, API, 데이터 구조, AWS·배포, AI까지 무엇이든 물어보세요.
+              안녕하세요! 궁금한 점을 물어보시거나 아래 추천 질문을 눌러 보세요.
             </div>
             {lines.map((l, i) => (
               <div key={i} className={`lp-guide-msg ${l.role}${l.error ? " error" : ""}`}>
