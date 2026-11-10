@@ -9,55 +9,71 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 interface Source { file: string; title: string }
 interface Line { role: "user" | "assistant"; text: string; sources?: Source[]; error?: boolean } // sources: kept, not shown
 
-/** Suggested questions, grouped by what a demo-day audience and judges tend to ask about. */
+/** Suggested questions by technical topic: what developers and demo-day judges ask about the build. */
 const STARTERS: { topic: string; questions: string[] }[] = [
   {
-    topic: "서비스",
+    topic: "아키텍처",
     questions: [
-      "receiptflow는 어떤 서비스인가요?",
-      "어떤 문제를 해결하나요? 누가 쓰나요?",
-      "영수증 한 장은 어떻게 처리되나요?",
-      "기존 경비 앱과 무엇이 다른가요?",
+      "전체 아키텍처를 설명해 주세요",
+      "영수증 한 장이 지나가는 흐름을 단계별로 알려 주세요",
+      "서비스 4개는 각각 무슨 일을 하나요?",
+      "서비스끼리는 어떻게 연결되나요?",
+      "왜 이 기술들을 선택했나요?",
+      "저장소 폴더 구조를 알려 주세요",
+    ],
+  },
+  {
+    topic: "API",
+    questions: [
+      "전체 API를 알려 주세요",
+      "증빙 API와 오류 코드를 알려 주세요",
+      "검수 API와 검토 포인트를 알려 주세요",
+      "관리자 API를 알려 주세요",
+      "챗봇 API의 SSE 이벤트 형식은 어떻게 되나요?",
+      "사진 보정 API(detect·apply)는 어떻게 동작하나요?",
+    ],
+  },
+  {
+    topic: "데이터 구조",
+    questions: [
+      "DynamoDB 테이블 구조를 상세히 알려 주세요",
+      "증빙의 상태는 어떻게 바뀌나요?",
+      "증빙 칸(필드) 목록과 규칙을 알려 주세요",
+      "자동 점검과 점검 사유는 어떻게 동작하나요?",
+      "S3와 SQS는 어떻게 구성돼 있나요?",
+    ],
+  },
+  {
+    topic: "AWS·배포",
+    questions: [
+      "어떤 AWS 서비스를 어떻게 썼나요?",
+      "Terraform 스택 6개는 각각 무엇을 만드나요?",
+      "EKS 구성과 자동 확장을 설명해 주세요",
+      "CI/CD와 자동 배포는 어떻게 되나요?",
+      "서비스별 IAM 권한은 어떻게 나눴나요?",
+      "왜 Lambda가 아니라 EKS인가요?",
+      "AWS 비용은 어떻게 관리하나요?",
     ],
   },
   {
     topic: "AI",
     questions: [
-      "왜 생성형 AI가 필요한가요?",
       "Bedrock 모델을 어떻게 나눠 쓰나요?",
-      "AI가 잘못 읽으면 어떻게 되나요?",
-      "AI가 거짓말하지 않게 어떻게 막나요?",
-      "영수증 인식 정확도는 얼마나 되나요?",
-      "쿠폰처럼 금액이 안 맞는 영수증은 어떻게 하나요?",
+      "영수증 추출은 어떻게 동작하나요?",
+      "AI 어시스턴트의 도구 7개를 알려 주세요",
+      "모델을 부르지 않는 턴은 무엇인가요?",
+      "서버가 AI 답을 검사하는 규칙은 무엇인가요?",
+      "영수증 테두리는 어떻게 찾나요?",
+      "정확도와 평가 방법을 알려 주세요",
     ],
   },
   {
-    topic: "아키텍처·AWS",
+    topic: "인증·보안",
     questions: [
-      "전체 아키텍처를 설명해 주세요",
-      "어떤 AWS 서비스를 썼나요?",
-      "왜 Lambda가 아니라 EKS인가요?",
-      "사용자가 몰리면 어떻게 확장되나요?",
-      "전체 API를 알려 주세요",
-      "배포는 어떻게 하나요?",
-    ],
-  },
-  {
-    topic: "보안·비용·운영",
-    questions: [
+      "로그인과 토큰 검증은 어떻게 하나요?",
+      "역할별 권한은 어떻게 나뉘나요?",
       "개인정보와 카드번호는 어떻게 다루나요?",
-      "로그인과 권한은 어떻게 관리하나요?",
-      "AWS 비용은 얼마나 들었나요?",
-      "영수증 한 장 처리에 AI 비용이 얼마인가요?",
-      "테스트와 검증은 어떻게 했나요?",
-    ],
-  },
-  {
-    topic: "팀·앞으로",
-    questions: [
-      "팀원과 담당 영역은 어떻게 되나요?",
-      "지금 한계는 무엇이고 다음 단계는요?",
-      "다른 회사에도 적용할 수 있나요?",
+      "개발자 모드는 어떻게 동작하나요?",
     ],
   },
 ];
@@ -168,12 +184,29 @@ function Markdown({ text }: { text: string }) {
   return <div className="md">{blocks}</div>;
 }
 
+/** A friendly robot head: antenna, ears, two eyes and a smile (the open button and the panel header). */
+function BotIcon({ size }: { size: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 32 32" fill="none" aria-hidden>
+      <path d="M16 3.5v4" stroke="#fff" strokeWidth="2" strokeLinecap="round" />
+      <circle cx="16" cy="3.2" r="2" fill="#ffd166" />
+      <rect x="2" y="14" width="3.5" height="7" rx="1.5" fill="#fff" opacity=".75" />
+      <rect x="26.5" y="14" width="3.5" height="7" rx="1.5" fill="#fff" opacity=".75" />
+      <rect x="5.5" y="7.5" width="21" height="19" rx="6.5" fill="#fff" />
+      <circle cx="12" cy="15.5" r="2.3" fill="#3b56c9" />
+      <circle cx="20" cy="15.5" r="2.3" fill="#3b56c9" />
+      <path d="M12 20.8c1.2 1.3 2.5 1.9 4 1.9s2.8-.6 4-1.9" stroke="#3b56c9" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 export default function GuideChat() {
   const [open, setOpen] = useState(false);
   const [lines, setLines] = useState<Line[]>([]);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
-  const [suggest, setSuggest] = useState(true); // the suggested-questions tray; reopened any time
+  const [suggest, setSuggest] = useState(true); // suggested questions; can be reopened mid-chat
+  const [topic, setTopic] = useState(0);
   const list = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -208,26 +241,31 @@ export default function GuideChat() {
   return (
     <>
       {!open && (
-        <button className="lp-guide-fab" onClick={() => setOpen(true)} aria-label="receiptflow에 물어보기">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
-            <path d="M4 5h16v11H9l-5 4z" /><path d="M8 10h8M8 13h5" />
-          </svg>
-          <span>receiptflow에 물어보기</span>
+        <button className="lp-guide-fab" onClick={() => setOpen(true)} aria-label="AI 안내 챗봇 열기" title="receiptflow에 물어보기">
+          <BotIcon size={34} />
         </button>
       )}
       {open && (
         <section className="lp-guide" role="dialog" aria-label="receiptflow 안내 챗봇">
-          <header>
-            <div>
+          <header className="lp-guide-head">
+            <span className="lp-guide-mark" aria-hidden>
+              <BotIcon size={24} />
+            </span>
+            <div className="lp-guide-title">
               <b>receiptflow 안내</b>
-              <span>프로젝트 문서를 바탕으로 답해요</span>
+              <span>아키텍처·API·AWS·AI, 프로젝트 문서로 답해요</span>
             </div>
-            <button onClick={() => setOpen(false)} aria-label="닫기">✕</button>
+            <button disabled={busy || lines.length === 0} onClick={() => { setLines([]); setSuggest(true); }}>새 대화</button>
+            <button className="lp-guide-close" onClick={() => setOpen(false)} aria-label="닫기">✕</button>
           </header>
+
           <div className="lp-guide-list" ref={list}>
-            <div className="lp-guide-msg assistant">
-              서비스가 어떻게 동작하는지, AI·AWS 구조, 사용법까지 무엇이든 물어보세요.
-            </div>
+            {lines.length === 0 && (
+              <div className="lp-guide-hello">
+                <b>무엇이든 물어보세요</b>
+                전체 구조부터 API 한 줄까지, 아래 추천 질문을 누르거나 직접 입력해 주세요.
+              </div>
+            )}
             {lines.map((l, i) => (
               <div key={i} className={`lp-guide-msg ${l.role}${l.error ? " error" : ""}`}>
                 {l.text ? (l.role === "assistant" && !l.error ? <Markdown text={l.text} /> : l.text)
@@ -235,25 +273,36 @@ export default function GuideChat() {
               </div>
             ))}
           </div>
-          {suggest && (
-            <div className="lp-guide-tray" aria-label="추천 질문">
-              {STARTERS.map((g) => (
-                <div key={g.topic}>
-                  <b>{g.topic}</b>
-                  <div className="lp-guide-starters">
-                    {g.questions.map((q) => <button key={q} disabled={busy} onClick={() => send(q)}>{q}</button>)}
-                  </div>
+
+          <div className="lp-guide-suggest">
+            <button type="button" className="lp-guide-suggest-bar" aria-expanded={suggest} onClick={() => setSuggest((v) => !v)}>
+              <span>추천 질문</span>
+              <span>{suggest ? "접기 ▾" : "보기 ▴"}</span>
+            </button>
+            {suggest && (
+              <>
+                <div className="lp-guide-tabs" role="tablist" aria-label="추천 질문 주제">
+                  {STARTERS.map((g, i) => (
+                    <button key={g.topic} type="button" role="tab" aria-selected={i === topic} onClick={() => setTopic(i)}>{g.topic}</button>
+                  ))}
                 </div>
-              ))}
-            </div>
-          )}
-          <button type="button" className="lp-guide-toggle" aria-expanded={suggest} onClick={() => setSuggest((v) => !v)}>
-            {suggest ? "추천 질문 닫기 ▾" : "추천 질문 보기 ▴"}
-          </button>
-          <form onSubmit={submit}>
+                <div className="lp-guide-questions">
+                  {STARTERS[topic].questions.map((q) => (
+                    <button key={q} type="button" disabled={busy} onClick={() => send(q)}>{q}</button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+
+          <form className="lp-guide-form" onSubmit={submit}>
             <input value={text} maxLength={300} placeholder="궁금한 점을 물어보세요" aria-label="질문"
               onChange={(e) => setText(e.target.value)} disabled={busy} />
-            <button disabled={busy || !text.trim()}>보내기</button>
+            <button disabled={busy || !text.trim()} aria-label="보내기">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+                <path d="M12 19V5M6 11l6-6 6 6" />
+              </svg>
+            </button>
           </form>
         </section>
       )}
