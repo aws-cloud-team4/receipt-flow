@@ -229,6 +229,12 @@ SSE 이벤트: `delta` `{text}` → (`tool` `{name, summary}`)* → `done` `{tex
 
 **테스트·mock (`RF_AI_MODE=mock`)**: 모델 없이 정해진 질문(목적 → 분류 확인)으로 동작한다 (`chat-service/dialog.py`). 결과 카드의 [맞아요]는 바로 `result_confirmed_at`을 기록하고, [직접 수정]은 답으로 해석하지 않는다. 목적 질문에는 과거 증빙·기본 예시로 만든 `suggestions`를 붙인다.
 
+## 소개 페이지 안내 챗봇 (prefix `/guide`, 별도 파드 — 로그인 불필요)
+
+| 메서드 · 경로 | 설명 |
+|---|---|
+| `POST /guide/ask` `{question, history?}` | 저장소 md 문서를 근거로 서비스 질문에 답한다(도구·증빙 접근 없음). `question` 1~300자, `history` 최근 `[{role: user\|assistant, text}]` 최대 6개. SSE: `delta {text}` … `done {text, sources}` 또는 `error {message}`. 방문자(IP 해시)당 분당 20회·하루 300회, 전체 하루 2000회를 넘으면 `429` (`too_many_questions` · `daily_limit` · `service_limit`) |
+
 ## preprocess-service (prefix `/preprocess`)
 
 사진 보정은 서버에서 하고, 사람이 그 사이에 테두리를 확인·수정한다.
