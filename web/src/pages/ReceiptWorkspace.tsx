@@ -178,7 +178,7 @@ export default function ReceiptWorkspace() {
             <button className="btn btn-ghost btn-lg" disabled={!!busy} onClick={skip}
               title="지금은 두고 다음 할 일로 — 보완 요청, 작성 중 순서">{busy === "skip" ? "넘어가는 중…" : "건너뛰기"}</button>
             <button className="btn btn-primary btn-lg" disabled={!!busy || analyzing} onClick={() => setReviewing(true)}>
-              {analyzing ? "분석이 끝나면 제출할 수 있어요" : busy === "submit" ? "제출 중…" : "제출하기"}
+              {analyzing ? "분석 중…" : busy === "submit" ? "제출 중…" : "제출하기"}
             </button>
           </div>
         )}
