@@ -383,7 +383,7 @@
   .lp-body { border-radius: 48px 48px 0 0; }
 }
 @media (max-width: 560px) {
-  .lp-util span { display: none; }
+  .lp-util span:not(.lp-util-me) { display: none; } /* the team name steps aside; a signed-in name stays */
   .lp-signin { display: none; }
   .lp-nav-row { height: 60px; }
   .lp .lp-brand { font-size: 22px; }

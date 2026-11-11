@@ -72,8 +72,7 @@ export default function Landing({ me }: { me?: Me }) {
         <div className="lp-wrap lp-util-row">
           <GuideStar open={guideOpen} onClick={() => setGuideOpen((v) => !v)} />
           <span>AWS 클라우드 AI 부트캠프 4팀</span>
-          <a href="#how">도움말</a>
-          {me ? <span>{me.name}님</span> : <Link to="/login">로그인</Link>}
+          {me ? <span className="lp-util-me">{me.name}님</span> : <Link to="/login">로그인</Link>}
         </div>
       </div>
 
