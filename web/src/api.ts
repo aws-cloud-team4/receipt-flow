@@ -339,9 +339,19 @@ export const admin = {
   clearDeletions: () => request<void>("DELETE", "/api/admin/deletions"),
 };
 
-export async function putImage(upload: Upload, blob: Blob) {
-  const resp = await fetch(upload.url, { method: "PUT", headers: upload.headers, body: blob });
-  if (!resp.ok) throw new ApiError(resp.status, "upload_failed", "사진 업로드에 실패했습니다. 다시 시도해 주세요.");
+/** PUT the photo to S3. XHR rather than fetch so the page can show how much has been sent (`onProgress`: 0–1). */
+export function putImage(upload: Upload, blob: Blob, onProgress?: (sent: number) => void): Promise<void> {
+  const failed = (status: number) =>
+    new ApiError(status, "upload_failed", "사진 업로드에 실패했습니다. 다시 시도해 주세요.");
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open(upload.method || "PUT", upload.url);
+    for (const [k, v] of Object.entries(upload.headers ?? {})) xhr.setRequestHeader(k, v);
+    if (onProgress) xhr.upload.onprogress = (e) => e.lengthComputable && onProgress(e.loaded / e.total);
+    xhr.onload = () => (xhr.status >= 200 && xhr.status < 300 ? resolve() : reject(failed(xhr.status)));
+    xhr.onerror = () => reject(failed(0));
+    xhr.send(blob);
+  });
 }
 
 /** "approved": settlement file (approved only + total row); "all": every submitted receipt. */

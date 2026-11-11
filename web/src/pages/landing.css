@@ -5,7 +5,7 @@
 
 /* utility bar + nav */
 /* the dark bar is the app's top bar (styles/shell.css .topbar): same height and colour, and it stays put */
-.lp { --bar-h: 52px; }
+
 .lp-util { position: sticky; top: 0; z-index: 21; background: var(--header); color: #fff; font-size: 13px; }
 .lp-util-row { display: flex; justify-content: flex-end; align-items: center; gap: 22px; height: var(--bar-h); }
 .lp-util a { color: #fff; }
@@ -453,20 +453,23 @@
 .lp {
   --guide-w: clamp(380px, 31vw, 500px); --g-pad: clamp(16px, 2vw, 28px);
   --g-bg: #fff; --g-raised: var(--gray); --g-line: #e3e6eb; --g-text: #333; --g-muted: #6b7686;
-  --g-blue: #3b56c9; --g-accent: linear-gradient(90deg, #5b7cf2, #a36cf0);
+  --g-blue: #006ce0; --g-blue-hover: #002b66; --g-blue-soft: #f0fbff; /* console button blue on white */
+  --g-accent: linear-gradient(90deg, #5b7cf2, #a36cf0);
 }
 .lp:has(> .lp-guide) { padding-left: var(--guide-w); }
 /* like the console: the dark top bar runs across the full width, above both the panel and the page */
 .lp:has(> .lp-guide) .lp-util { margin-left: calc(-1 * var(--guide-w)); }
-.lp:has(> .lp-guide) .lp-guide-fab { display: none; }
 
-.lp-guide-fab {
-  position: fixed; left: 24px; bottom: 24px; z-index: 40; display: grid; place-items: center;
-  width: 60px; height: 60px; border: 0; border-radius: 50%; cursor: pointer;
-  background: linear-gradient(135deg, #5b7cf2, #a36cf0); box-shadow: 0 10px 28px rgba(91, 124, 242, 0.45);
-  transition: transform 0.15s, box-shadow 0.15s;
+/* the chat's button in the dark bar (left end): the console's AI sparkle */
+.lp-util-row .lp-guide-star { margin-right: auto; margin-left: -8px; }
+.lp-guide-star {
+  display: grid; place-items: center; width: 36px; height: 36px; padding: 0; border: 0; border-radius: 8px;
+  background: none; color: #fff; cursor: pointer; transition: color 0.15s;
 }
-.lp-guide-fab:hover { transform: translateY(-3px) scale(1.04); box-shadow: 0 14px 32px rgba(91, 124, 242, 0.55); }
+/* console colours on the dark bar: hover blue #42b4ff, open purple #bf80ff (the icon follows `color`) */
+.lp-guide-star:hover { color: #42b4ff; }
+.lp-guide-star:focus-visible { outline: 2px solid #42b4ff; outline-offset: 1px; }
+.lp-guide-star.on, .lp-guide-star:active { color: #bf80ff; }
 
 .lp-guide {
   position: fixed; left: 0; top: var(--bar-h); bottom: 0; z-index: 40; width: var(--guide-w);
@@ -530,31 +533,31 @@
 .lp-guide-list:has(.lp-guide-hello) + .lp-guide-tray { flex: 1; min-height: 0; max-height: none; align-content: start; }
 .lp-guide-list:has(.lp-guide-hello):not(:has(+ .lp-guide-tray)) { flex: 1; }
 .lp-guide-starters button {
-  border: 1.5px solid #5b7cf2; background: #fff; color: var(--g-blue); border-radius: 40px; padding: 6px 14px;
-  font-size: 14px; font-weight: 700; line-height: 1.5; text-align: left; cursor: pointer; transition: background 0.15s, color 0.15s;
+  border: 2px solid var(--g-blue); background: #fff; color: var(--g-blue); border-radius: 20px; padding: 4px 16px;
+  font-size: 14px; font-weight: 700; line-height: 1.5; text-align: left; cursor: pointer; transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
-.lp-guide-starters button:hover:not(:disabled) { background: #eef1fe; }
+.lp-guide-starters button:hover:not(:disabled) { background: var(--g-blue-soft); border-color: var(--g-blue-hover); color: var(--g-blue-hover); }
+.lp-guide-starters button:focus-visible, .lp-guide form button:focus-visible, .lp-guide-toggle:focus-visible { outline: 2px solid var(--g-blue); outline-offset: 2px; }
 .lp-guide-starters button:disabled { opacity: 0.45; cursor: default; }
 .lp-guide-toggle { flex: none; border: 0; border-top: 1px solid var(--g-line); background: none; color: var(--g-blue); font-size: 14px; font-weight: 700; padding: 12px var(--g-pad) 4px; text-align: left; cursor: pointer; }
-.lp-guide-toggle:hover { text-decoration: underline; }
+.lp-guide-toggle:hover { color: var(--g-blue-hover); text-decoration: underline; }
 
-/* input: field + the page's ink pill button */
+/* input: field + the console's filled blue pill */
 .lp-guide form { flex: none; display: flex; gap: 8px; padding: 8px var(--g-pad) calc(20px + env(safe-area-inset-bottom)); }
 .lp-guide input { flex: 1; min-width: 0; height: 46px; padding: 0 20px; border: 1px solid #c5cad3; border-radius: 40px; background: #fff; color: var(--ink); font-size: 16px; }
 .lp-guide input::placeholder { color: #8a94a3; }
-.lp-guide input:focus { outline: none; border-color: #5b7cf2; box-shadow: 0 0 0 3px rgba(91, 124, 242, 0.2); }
-.lp-guide form button { flex: none; border: 0; border-radius: 40px; padding: 0 24px; height: 46px; background: var(--ink); color: #fff; font-size: 15px; font-weight: 700; cursor: pointer; }
-.lp-guide form button:hover:not(:disabled) { background: #2c3644; }
+.lp-guide input:focus { outline: none; border-color: var(--g-blue); box-shadow: 0 0 0 1px var(--g-blue); }
+.lp-guide form button { flex: none; border: 0; border-radius: 40px; padding: 0 24px; height: 46px; background: var(--g-blue); color: #fff; font-size: 15px; font-weight: 700; cursor: pointer; transition: background 0.15s; }
+.lp-guide form button:hover:not(:disabled) { background: var(--g-blue-hover); }
 .lp-guide form button:disabled { background: #e3e6eb; color: #9aa5b4; cursor: default; }
 
 @media (max-width: 1099px) {
   .lp:has(> .lp-guide) { padding-left: 0; }
   .lp:has(> .lp-guide) .lp-util { margin-left: 0; }
-  .lp-guide { top: 0; width: min(440px, 100vw); border-right: 1px solid var(--g-line); box-shadow: 16px 0 48px rgba(22, 29, 38, 0.2); }
+  .lp-guide { width: min(440px, 100vw); border-right: 1px solid var(--g-line); box-shadow: 16px 0 48px rgba(22, 29, 38, 0.2); }
 }
 @media (max-width: 560px) {
   .lp-guide { width: 100vw; border-right: 0; }
-  .lp-guide-fab { left: 16px; bottom: 16px; width: 56px; height: 56px; }
   .lp-guide-hello p { font-size: 15px; }
   .lp-guide-list { padding-top: 18px; padding-bottom: 14px; }
   .lp-guide-tray { max-height: 50%; }

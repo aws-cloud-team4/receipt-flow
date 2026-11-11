@@ -30,4 +30,4 @@
 .request-preview .bubble { max-width: 100%; }
 
 /* scrolled into view on phones: clear the sticky top bar */
-.change-request { scroll-margin-top: 106px; }
+.change-request { scroll-margin-top: calc(var(--bar-h) + 54px); }

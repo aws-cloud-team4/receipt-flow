@@ -143,18 +143,25 @@ function Markdown({ text }: { text: string }) {
   return <div className="md">{blocks}</div>;
 }
 
-/** The AI sparkle: one large four-point star with a small one beside it (the open button). */
-function BotIcon({ size }: { size: number }) {
+/**
+ * The chat's button in the dark top bar, like the console's AI sparkle: a large star with a sharp
+ * star-shaped hole and a small solid one: white while closed, blue on hover, purple while the chat is open. Pressing it again closes it.
+ */
+export function GuideStar({ open, onClick }: { open: boolean; onClick: () => void }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 32 32" fill="#fff" aria-hidden>
-      <path d="M14 4c.9 6.200 3.800 9.100 10 10-6.200.9-9.100 3.800-10 10-.9-6.200-3.800-9.100-10-10 6.200-.9 9.100-3.800 10-10z" />
-      <path d="M25 19c.4 2.700 1.300 3.600 4 4-2.700.4-3.600 1.300-4 4-.4-2.700-1.300-3.600-4-4 2.700-.4 3.600-1.300 4-4z" />
-    </svg>
+    <button className={`lp-guide-star${open ? " on" : ""}`} onClick={onClick} aria-pressed={open}
+      aria-label={open ? "AI 챗봇 닫기" : "AI 챗봇 열기"} title="receiptflow에 물어보기">
+      <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden>
+        {/* traced from the console's AI icon: big star with a star-shaped hole, small solid star */}
+        <path fill="currentColor" fillRule="evenodd" d="M2.03 12.69L2.12 12.24L2.35 11.81L2.88 11.44L3.54 11.14L4.23 10.89L4.77 10.66L5.28 10.46L5.74 10.28L6.12 10.11L6.49 9.96L6.86 9.83L7.18 9.71L7.47 9.58L7.73 9.46L8.01 9.37L8.27 9.27L8.5 9.17L8.68 9.03L8.83 8.85L8.93 8.62L9.02 8.36L9.12 8.08L9.24 7.81L9.36 7.53L9.49 7.21L9.62 6.84L9.77 6.47L9.94 6.09L10.12 5.63L10.31 5.11L10.54 4.58L10.79 3.89L11.1 3.22L11.47 2.69L11.9 2.47L12.34 2.38L12.79 2.47L13.22 2.69L13.59 3.22L13.9 3.89L14.14 4.58L14.37 5.11L14.57 5.63L14.75 6.09L14.92 6.47L15.07 6.84L15.2 7.21L15.32 7.53L15.45 7.81L15.57 8.08L15.67 8.36L15.76 8.62L15.86 8.85L16 9.03L16.18 9.17L16.41 9.27L16.67 9.37L16.95 9.46L17.22 9.58L17.5 9.71L17.82 9.83L18.19 9.96L18.56 10.11L18.95 10.28L19.41 10.46L19.92 10.66L20.46 10.89L21.15 11.14L21.81 11.44L22.34 11.81L22.56 12.24L22.66 12.69L22.56 13.13L22.34 13.56L21.81 13.93L21.15 14.24L20.46 14.49L19.92 14.72L19.41 14.91L18.95 15.09L18.56 15.26L18.19 15.42L17.82 15.54L17.5 15.67L17.22 15.79L16.95 15.92L16.67 16.01L16.41 16.1L16.18 16.2L16 16.35L15.86 16.53L15.76 16.76L15.67 17.02L15.57 17.3L15.45 17.56L15.32 17.85L15.2 18.17L15.07 18.54L14.92 18.91L14.75 19.29L14.57 19.75L14.37 20.26L14.14 20.8L13.9 21.49L13.59 22.15L13.22 22.68L12.79 22.91L12.34 23L11.9 22.91L11.47 22.68L11.1 22.15L10.79 21.49L10.54 20.8L10.31 20.26L10.12 19.75L9.94 19.29L9.77 18.91L9.62 18.54L9.49 18.17L9.36 17.85L9.24 17.56L9.12 17.3L9.02 17.02L8.93 16.76L8.83 16.53L8.68 16.35L8.5 16.2L8.27 16.1L8.01 16.01L7.73 15.92L7.47 15.79L7.18 15.67L6.86 15.54L6.49 15.42L6.12 15.26L5.74 15.09L5.28 14.91L4.77 14.72L4.23 14.49L3.54 14.24L2.88 13.93L2.35 13.56L2.12 13.13ZM7.38 12.69L7.56 12.48L7.96 12.3L8.32 12.16L8.67 12.04L8.93 11.93L9.16 11.83L9.35 11.74L9.54 11.67L9.71 11.6L9.89 11.54L10.04 11.49L10.17 11.43L10.29 11.38L10.4 11.32L10.5 11.27L10.58 11.21L10.66 11.15L10.74 11.08L10.8 11.01L10.86 10.92L10.93 10.84L10.98 10.74L11.04 10.64L11.09 10.52L11.15 10.39L11.2 10.23L11.25 10.06L11.32 9.89L11.4 9.7L11.49 9.5L11.59 9.28L11.7 9.01L11.81 8.66L11.96 8.3L12.13 7.91L12.34 7.73L12.55 7.91L12.73 8.3L12.87 8.66L12.99 9.01L13.1 9.28L13.2 9.5L13.29 9.7L13.36 9.89L13.43 10.06L13.49 10.23L13.54 10.39L13.6 10.52L13.65 10.64L13.71 10.74L13.76 10.84L13.82 10.92L13.88 11.01L13.95 11.08L14.03 11.15L14.11 11.21L14.19 11.27L14.29 11.32L14.39 11.38L14.51 11.43L14.64 11.49L14.8 11.54L14.97 11.6L15.14 11.67L15.34 11.74L15.53 11.83L15.75 11.93L16.02 12.04L16.37 12.16L16.73 12.3L17.12 12.48L17.3 12.69L17.12 12.9L16.73 13.07L16.37 13.22L16.02 13.34L15.75 13.44L15.53 13.54L15.34 13.63L15.14 13.71L14.97 13.78L14.8 13.83L14.64 13.88L14.51 13.94L14.39 13.99L14.29 14.05L14.19 14.1L14.11 14.17L14.03 14.23L13.95 14.3L13.88 14.37L13.82 14.45L13.76 14.53L13.71 14.63L13.65 14.74L13.6 14.86L13.54 14.99L13.49 15.14L13.43 15.32L13.36 15.49L13.29 15.68L13.2 15.87L13.1 16.1L12.99 16.36L12.87 16.71L12.73 17.07L12.55 17.47L12.34 17.65L12.13 17.47L11.96 17.07L11.81 16.71L11.7 16.36L11.59 16.1L11.49 15.87L11.4 15.68L11.32 15.49L11.25 15.32L11.2 15.14L11.15 14.99L11.09 14.86L11.04 14.74L10.98 14.63L10.93 14.53L10.86 14.45L10.8 14.37L10.74 14.3L10.66 14.23L10.58 14.17L10.5 14.1L10.4 14.05L10.29 13.99L10.17 13.94L10.04 13.88L9.89 13.83L9.71 13.78L9.54 13.71L9.35 13.63L9.16 13.54L8.93 13.44L8.67 13.34L8.32 13.22L7.96 13.07L7.56 12.9Z" />
+        <path fill="currentColor" d="M1.34 4.37L1.44 4.23L1.65 4.1L1.9 4L2.16 3.92L2.35 3.85L2.53 3.78L2.65 3.72L2.79 3.67L2.89 3.62L2.99 3.57L3.07 3.51L3.16 3.47L3.27 3.45L3.36 3.42L3.43 3.39L3.5 3.35L3.56 3.31L3.61 3.26L3.66 3.22L3.7 3.16L3.73 3.09L3.76 3.01L3.79 2.92L3.82 2.82L3.86 2.72L3.91 2.65L3.96 2.55L4.02 2.45L4.06 2.31L4.13 2.18L4.19 2.01L4.26 1.81L4.35 1.56L4.45 1.31L4.57 1.09L4.72 1L4.86 1.09L4.98 1.31L5.09 1.56L5.17 1.81L5.24 2.01L5.3 2.18L5.37 2.31L5.42 2.45L5.47 2.55L5.52 2.65L5.57 2.72L5.61 2.82L5.64 2.92L5.67 3.01L5.7 3.09L5.74 3.16L5.77 3.22L5.82 3.26L5.87 3.31L5.93 3.35L6 3.39L6.07 3.42L6.16 3.45L6.27 3.47L6.36 3.51L6.44 3.57L6.54 3.62L6.64 3.67L6.78 3.72L6.9 3.78L7.08 3.85L7.27 3.92L7.53 4L7.78 4.1L8 4.23L8.09 4.37L8 4.51L7.78 4.64L7.53 4.74L7.27 4.82L7.08 4.9L6.9 4.96L6.78 5.02L6.64 5.07L6.54 5.13L6.44 5.18L6.36 5.23L6.27 5.27L6.16 5.29L6.07 5.32L6 5.36L5.93 5.39L5.87 5.43L5.82 5.48L5.77 5.53L5.74 5.59L5.7 5.66L5.67 5.73L5.64 5.82L5.61 5.92L5.57 6.02L5.52 6.1L5.47 6.2L5.42 6.29L5.37 6.44L5.3 6.56L5.24 6.73L5.17 6.93L5.09 7.18L4.98 7.44L4.86 7.65L4.72 7.74L4.57 7.65L4.45 7.44L4.35 7.18L4.26 6.93L4.19 6.73L4.13 6.56L4.06 6.44L4.02 6.29L3.96 6.2L3.91 6.1L3.86 6.02L3.82 5.92L3.79 5.82L3.76 5.73L3.73 5.66L3.7 5.59L3.66 5.53L3.61 5.48L3.56 5.43L3.5 5.39L3.43 5.36L3.36 5.32L3.27 5.29L3.16 5.27L3.07 5.23L2.99 5.18L2.89 5.13L2.79 5.07L2.65 5.02L2.53 4.96L2.35 4.9L2.16 4.82L1.9 4.74L1.65 4.64L1.44 4.51Z" />
+      </svg>
+    </button>
   );
 }
 
-export default function GuideChat() {
-  const [open, setOpen] = useState(false);
+/** The chat panel; `open` and the star that toggles it live in the page (`Landing`). */
+export default function GuideChat({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [lines, setLines] = useState<Line[]>([]);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
@@ -192,11 +199,6 @@ export default function GuideChat() {
 
   return (
     <>
-      {!open && (
-        <button className="lp-guide-fab" onClick={() => setOpen(true)} aria-label="AI 안내 챗봇 열기" title="receiptflow에 물어보기">
-          <BotIcon size={32} />
-        </button>
-      )}
       {open && (
         <section className="lp-guide" role="dialog" aria-label="receiptflow AI 챗봇">
           <header>
@@ -204,7 +206,7 @@ export default function GuideChat() {
             <button disabled={busy || lines.length === 0} onClick={() => { setLines([]); setSuggest(true); }} aria-label="새 대화" title="새 대화">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden><path d="M12 5v14M5 12h14" /></svg>
             </button>
-            <button onClick={() => setOpen(false)} aria-label="닫기" title="닫기">
+            <button onClick={onClose} aria-label="닫기" title="닫기">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M15 5l-7 7 7 7" /></svg>
             </button>
           </header>

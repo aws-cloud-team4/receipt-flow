@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import type { Me } from "../api";
 import { ChatArt, CheckArt, ScanArt } from "../components/landing/CardArt";
@@ -9,7 +9,7 @@ import { EmployeeArt, ReviewerArt } from "../components/landing/RoleArt";
 import StepDemo from "../components/landing/StepDemo";
 import TeamSection from "../components/landing/Team";
 import UsageSection from "../components/landing/UsageCard";
-import GuideChat from "../components/landing/GuideChat";
+import GuideChat, { GuideStar } from "../components/landing/GuideChat";
 import "./landing.css";
 
 // Public intro page for signed-out visitors. The layout follows a cloud-provider marketing home
@@ -60,6 +60,7 @@ const ROLES = [
 /** Signed out it leads to the login; opened from the app (`/about`, `me` set) it leads back home. */
 export default function Landing({ me }: { me?: Me }) {
   const page = useReveal<HTMLDivElement>();
+  const [guideOpen, setGuideOpen] = useState(false);
   // coming from a scrolled app page, start at the top (an #anchor still scrolls on its own)
   useEffect(() => {
     if (!window.location.hash) window.scrollTo(0, 0);
@@ -69,6 +70,7 @@ export default function Landing({ me }: { me?: Me }) {
     <div className="lp" ref={page}>
       <div className="lp-util">
         <div className="lp-wrap lp-util-row">
+          <GuideStar open={guideOpen} onClick={() => setGuideOpen((v) => !v)} />
           <span>AWS 클라우드 AI 부트캠프 4팀</span>
           <a href="#how">도움말</a>
           {me ? <span>{me.name}님</span> : <Link to="/login">로그인</Link>}
@@ -181,7 +183,7 @@ export default function Landing({ me }: { me?: Me }) {
         </div>
       </footer>
 
-      <GuideChat />
+      <GuideChat open={guideOpen} onClose={() => setGuideOpen(false)} />
     </div>
   );
 }
