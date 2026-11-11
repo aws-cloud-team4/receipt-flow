@@ -131,7 +131,7 @@
 }
 .dropzone strong { font-size: 16px; }
 .preview img { width: 100%; border-radius: var(--radius); display: block; max-height: 60vh; object-fit: contain; background: #0f151d; }
-.corner-editor { position: relative; width: fit-content; max-width: 100%; margin: 0 auto; touch-action: none; user-select: none; }
+.corner-editor { position: relative; width: fit-content; max-width: 100%; margin: 0 auto; user-select: none; } /* only the handles block page scrolling */
 .corner-editor img { width: auto; max-width: 100%; }
 .corner-editor svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 .corner-editor polygon { fill: rgba(9, 114, 211, 0.12); stroke: var(--blue); stroke-width: 2; }

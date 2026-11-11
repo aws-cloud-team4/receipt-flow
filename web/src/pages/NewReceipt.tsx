@@ -37,9 +37,16 @@ export default function NewReceipt() {
   const [source, setSource] = useState<"camera" | "album">("camera");
   const input = useRef<HTMLInputElement>(null);
   const cameraInput = useRef<HTMLInputElement>(null);
+  const actions = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
   useEffect(() => () => void (preview && URL.revokeObjectURL(preview)), [preview]);
+  // Phones: once the edges are found, bring the upload button into view under the tall photo.
+  useEffect(() => {
+    if (phase !== "adjust" || !touch) return;
+    const t = setTimeout(() => actions.current?.scrollIntoView({ block: "end", behavior: "smooth" }), 300);
+    return () => clearTimeout(t);
+  }, [phase, touch]);
 
   async function pick(file: File | undefined) {
     if (!file) return;
@@ -193,7 +200,7 @@ export default function NewReceipt() {
 
           {error && <div className="alert error">{error}</div>}
 
-          <div style={{ display: "flex", gap: 8 }}>
+          <div ref={actions} style={{ display: "flex", gap: 8, scrollMarginBottom: 16 }}>
             {preview && (
               <button className={`btn btn-lg ${blurry ? "btn-primary" : "btn-ghost"}`} disabled={busy}
                 onClick={() => (again === "camera" ? shoot() : input.current?.click())}>
