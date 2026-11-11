@@ -3,7 +3,7 @@
 /* ── workspace (photo | chat | form) ───────────────── */
 .workspace { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: 16px; align-items: start; }
 .workspace .span-all { grid-column: 1 / -1; }
-.workspace .photo-col { position: sticky; top: 106px; }
+.workspace .photo-col { position: sticky; top: calc(var(--bar-h) + 54px); }
 /* fits between the top bar and the bottom action bar */
 .workspace .photo-col .photo img { max-height: calc(100vh - 170px); }
 .workspace .col { display: grid; gap: 16px; min-width: 0; }
@@ -141,6 +141,7 @@
 }
 .corner-handle:active { cursor: grabbing; background: var(--blue-soft); }
 .capture-status { display: flex; justify-content: space-between; align-items: center; gap: 8px 12px; flex-wrap: wrap; color: var(--ink-2); }
+.capture-album { justify-self: center; margin-top: -6px; } /* phones: the album, under [다시 찍기] */
 .capture-meta { display: flex; gap: 12px; align-items: center; margin-left: auto; }
 .link-btn { border: 0; background: none; padding: 0; color: var(--blue); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
 .segmented { display: flex; background: var(--line-2); border-radius: 10px; padding: 3px; gap: 3px; }

@@ -10,6 +10,8 @@ import { canvasToJpeg, toCanvas } from "../image";
 const ORIGINAL_MAX_SIDE = 3200; // the server crops from this, so keep enough for small text
 
 type Phase = "pick" | "uploading" | "adjust" | "applying";
+/** What the upload is doing now, shown over the photo: shrinking it, sending it (with %), finding the edges. */
+type Step = "prepare" | "send" | "detect";
 
 /** Phones and tablets: the box opens the camera; Android's photo picker shows no camera, so the album is a separate link. */
 const touchFirst = () => window.matchMedia("(hover: none) and (pointer: coarse)").matches;
@@ -28,7 +30,11 @@ export default function NewReceipt() {
   const [quad, setQuad] = useState<Quad | null>(null);
   const [wholePhoto, setWholePhoto] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [step, setStep] = useState<Step>("prepare");
+  const [sent, setSent] = useState(0);
   const [touch] = useState(touchFirst);
+  /** Phones: where the last photo came from, so picking again opens the same place. */
+  const [source, setSource] = useState<"camera" | "album">("camera");
   const input = useRef<HTMLInputElement>(null);
   const cameraInput = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
@@ -46,13 +52,21 @@ export default function NewReceipt() {
     setQuad(null);
     setWholePhoto(false);
     setPhase("uploading");
+    setStep("prepare");
+    setSent(0);
+    setPreview(URL.createObjectURL(file)); // move on to the photo at once; swapped for the upload below
     try {
+      // A new receipt is created while the photo is shrunk (both take a moment on a phone). A photo for an
+      // existing receipt asks for its URL only once the photo is ready: that call clears the receipt.
+      const creating = receiptId ? null : api.create();
+      creating?.catch(() => {}); // handled where it is awaited
       const blob = await canvasToJpeg(await toCanvas(file, ORIGINAL_MAX_SIDE), 0.92);
       setPreview(URL.createObjectURL(blob)); // same pixels the server sees, so corners line up
-      // The first photo of a new receipt creates it; later photos replace the original.
-      const { receipt, upload } = receiptId ? await api.reuploadUrl(receiptId) : await api.create();
+      const { receipt, upload } = creating ? await creating : await api.reuploadUrl(receiptId!);
       setReceiptId(receipt.id);
-      await putImage(upload, blob);
+      setStep("send");
+      await putImage(upload, blob, setSent);
+      setStep("detect");
       const found = await api.detect(receipt.id);
       setDetection(found);
       setQuad(found.corners);
@@ -85,6 +99,9 @@ export default function NewReceipt() {
     (touch ? cameraInput : input).current?.click();
   }
   const blurry = detection?.blurry ?? false;
+  /** The button for another photo: a blurry photo is retaken with the camera; otherwise phones go back to
+   * where the last photo came from (the other place is the link under it), computers to the file window. */
+  const again: "camera" | "album" = blurry || (touch && source === "camera") ? "camera" : "album";
   const title = existingId ? "사진 다시 올리기" : "영수증 올리기";
 
   return (
@@ -106,9 +123,9 @@ export default function NewReceipt() {
           </div>
 
           <input ref={cameraInput} type="file" accept="image/*" capture="environment" hidden
-            onChange={(e) => { pick(e.target.files?.[0]); e.target.value = ""; }} />
+            onChange={(e) => { setSource("camera"); pick(e.target.files?.[0]); e.target.value = ""; }} />
           <input ref={input} type="file" accept="image/*" hidden
-            onChange={(e) => { pick(e.target.files?.[0]); e.target.value = ""; }} />
+            onChange={(e) => { setSource("album"); pick(e.target.files?.[0]); e.target.value = ""; }} />
 
           {preview && detection ? (
             <div className="preview">
@@ -118,7 +135,10 @@ export default function NewReceipt() {
           ) : preview ? (
             <div className="preview capture-wait">
               <img src={preview} alt="선택한 영수증" />
-              <div className="overlay"><div><div className="spinner" />영수증 테두리를 찾는 중이에요</div></div>
+              <div className="overlay"><div><div className="spinner" />{
+                step === "prepare" ? "사진을 준비하는 중이에요"
+                  : step === "send" ? `사진을 올리는 중이에요 ${Math.round(sent * 100)}%`
+                  : "영수증 테두리를 찾는 중이에요"}</div></div>
             </div>
           ) : (
             <div className="dropzone" role="button" tabIndex={0} aria-disabled={busy}
@@ -176,17 +196,23 @@ export default function NewReceipt() {
           <div style={{ display: "flex", gap: 8 }}>
             {preview && (
               <button className={`btn btn-lg ${blurry ? "btn-primary" : "btn-ghost"}`} disabled={busy}
-                onClick={() => (blurry ? shoot() : input.current?.click())}>
-                {blurry ? "다시 찍기" : "다시 선택"}
+                onClick={() => (again === "camera" ? shoot() : input.current?.click())}>
+                {again === "camera" ? "다시 찍기" : "다시 선택"}
               </button>
             )}
             <button className={`btn btn-lg ${blurry ? "btn-ghost" : "btn-primary"}`} style={{ flex: 1 }}
               disabled={phase !== "adjust"} onClick={confirm}>
-              {phase === "uploading" ? "사진 올리는 중…"
+              {phase === "uploading" ? (step === "detect" ? "테두리 찾는 중…" : "사진 올리는 중…")
                 : phase === "applying" ? "자르고 분석 시작하는 중…"
                 : blurry ? "그래도 올리기" : "이대로 올리고 분석 시작"}
             </button>
           </div>
+          {preview && touch && (
+            <button className="link-btn capture-album" disabled={busy}
+              onClick={() => (again === "camera" ? input.current?.click() : shoot())}>
+              {again === "camera" ? "앨범에서 선택" : "카메라로 찍기"}
+            </button>
+          )}
         </div>
       </main>
     </>
