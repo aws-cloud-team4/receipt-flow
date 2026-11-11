@@ -166,7 +166,7 @@ export default function GuideChat({ open, onClose }: { open: boolean; onClose: (
   const [lines, setLines] = useState<Line[]>([]);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
-  const [suggest, setSuggest] = useState(true); // the suggested-questions tray; reopened any time
+  const [suggest, setSuggest] = useState(false); // the suggested-questions tray: closed until opened with the link
   const list = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -204,7 +204,7 @@ export default function GuideChat({ open, onClose }: { open: boolean; onClose: (
         <section className="lp-guide" role="dialog" aria-label="receiptflow AI 챗봇">
           <header>
             <b>receiptflow AI 챗봇</b>
-            <button disabled={busy || lines.length === 0} onClick={() => { setLines([]); setSuggest(true); }} aria-label="새 대화" title="새 대화">
+            <button disabled={busy || lines.length === 0} onClick={() => { setLines([]); setSuggest(false); }} aria-label="새 대화" title="새 대화">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden><path d="M12 5v14M5 12h14" /></svg>
             </button>
             <button onClick={onClose} aria-label="닫기" title="닫기">
@@ -221,7 +221,7 @@ export default function GuideChat({ open, onClose }: { open: boolean; onClose: (
                   <path d="M47 39c.5 3.400 1.600 4.500 5 5-3.400.5-4.500 1.600-5 5-.5-3.400-1.600-4.500-5-5 3.400-.5 4.500-1.600 5-5z" fill="#fff" />
                 </svg>
                 <b>안녕하세요, receiptflow AI 챗봇이에요</b>
-                <p>이 프로젝트에 대해 궁금한 것은 무엇이든 편하게 물어보세요. 어디서부터 물어볼지 고민되면 아래 추천 질문을 눌러 보세요.</p>
+                <p>이 프로젝트에 대해 궁금한 것은 무엇이든 편하게 물어보세요. 어디서부터 물어볼지 고민되면 아래 [추천 질문 보기]를 눌러 보세요.</p>
               </div>
             )}
             {lines.map((l, i) => (
