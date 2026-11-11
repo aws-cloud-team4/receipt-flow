@@ -99,9 +99,9 @@ export default function NewReceipt() {
     (touch ? cameraInput : input).current?.click();
   }
   const blurry = detection?.blurry ?? false;
-  /** The button for another photo: a blurry photo is retaken with the camera; otherwise phones go back to
-   * where the last photo came from (the other place is the link under it), computers to the file window. */
-  const again: "camera" | "album" = blurry || (touch && source === "camera") ? "camera" : "album";
+  /** The one button for another photo. Phones go back to where the last photo came from (camera or album),
+   * blurry or not; computers open the file window (labelled 다시 찍기 when the photo was blurry). */
+  const again: "camera" | "album" = touch ? source : blurry ? "camera" : "album";
   const title = existingId ? "사진 다시 올리기" : "영수증 올리기";
 
   return (
@@ -207,12 +207,6 @@ export default function NewReceipt() {
                 : blurry ? "그래도 올리기" : "이대로 올리고 분석 시작"}
             </button>
           </div>
-          {preview && touch && (
-            <button className="link-btn capture-album" disabled={busy}
-              onClick={() => (again === "camera" ? input.current?.click() : shoot())}>
-              {again === "camera" ? "앨범에서 선택" : "카메라로 찍기"}
-            </button>
-          )}
         </div>
       </main>
     </>
