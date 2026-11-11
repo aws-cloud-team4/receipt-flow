@@ -48,9 +48,8 @@
   .dash-grid { grid-template-columns: minmax(0, 1fr); }
   .widget[class*="w-"] { grid-column: auto; }
   .topnav { margin-left: 8px; }
-  .topbar .who-meta { display: none; }
 }
-.topbar .brand, .topnav a, .topbar button.link { white-space: nowrap; flex: none; }
+.topbar .brand, .topnav a { white-space: nowrap; flex: none; }
 @media (max-width: 600px) {
   .topnav { gap: 0; margin-left: 4px; }
   .topnav a { padding: 6px 7px; font-size: 12px; }
