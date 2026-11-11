@@ -140,7 +140,14 @@ export default function ChatPanel({ receipt, editable, onFieldsChanged, onEditRe
   useEffect(() => {
     const was = prevStatus.current;
     prevStatus.current = status;
-    if (editable && ANALYZING.includes(was) && analysed && started.current) send({ event: "analysis_done" });
+    if (editable && ANALYZING.includes(was) && analysed && started.current) {
+      send({ event: "analysis_done" });
+      // Phones: the photo sits above the chat, so the result card can appear below the screen while the
+      // employee watches the photo. Bring it into view once, only when the wait ends on this page.
+      if (matchMedia("(max-width: 900px)").matches) {
+        setTimeout(() => log.current?.querySelector(".result-card")?.scrollIntoView({ block: "center", behavior: "smooth" }), 300);
+      }
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status]);
 
