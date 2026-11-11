@@ -10,13 +10,37 @@
 .brand { font-size: 21px; font-weight: 750; letter-spacing: -1px; color: #fff; }
 .brand span { font-weight: 400; }
 .topbar .spacer { flex: 1; }
-.topbar .who { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #c6ccd6; white-space: nowrap; min-width: 0; }
-.topbar .who:hover .who-name { text-decoration: underline; }
+.topbar-sep { flex: none; width: 1px; height: 22px; background: #4a5566; }
+.topbar .lp-guide-star { margin: 0 -8px; } /* the console's sparkle between the logo and the menu */
+/* account menu (components/AccountMenu.tsx): the name opens a dark panel like the console's */
+.account { position: relative; flex: none; }
+.topbar .who { display: flex; align-items: center; gap: 6px; height: 34px; padding: 0 8px; border: 0; border-radius: 6px;
+  background: none; color: #c6ccd6; font-size: 13px; white-space: nowrap; cursor: pointer; }
+.topbar .who:hover, .topbar .who.on { background: rgba(255, 255, 255, 0.1); color: #fff; }
+.topbar .who:focus-visible { outline: 2px solid #42b4ff; outline-offset: 1px; }
 .who-name { color: #fff; font-weight: 600; }
-.who-meta { overflow: hidden; text-overflow: ellipsis; }
-@media (max-width: 520px) { .who-meta { display: none; } }
 .role-tag { font-size: 11px; padding: 2px 8px; border: 1px solid #5d6878; border-radius: 4px; }
-.topbar button.link { background: none; border: 0; color: #c6ccd6; font-size: 12px; padding: 6px 0; }
+.account-menu {
+  position: absolute; right: 0; top: calc(100% + 7px); z-index: 50; width: 280px; max-width: calc(100vw - 16px);
+  padding: 16px 0 14px; background: var(--header); color: #fff; border: 1px solid #414d5c; border-top: 0;
+  border-radius: 0 0 12px 12px; box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35); font-size: 14px;
+}
+.account-menu dl { margin: 0; padding: 0 20px; display: grid; gap: 12px; }
+.account-row dt { font-size: 13px; font-weight: 700; color: #fff; }
+.account-row dd { margin: 2px 0 0; color: #d1d5db; display: flex; align-items: center; gap: 8px; }
+.account-copy { display: inline-flex; align-items: center; gap: 6px; padding: 0; border: 0; background: none;
+  color: #d1d5db; font: inherit; cursor: pointer; }
+.account-copy svg { color: #42b4ff; }
+.account-copy:hover { color: #fff; }
+.account-copied { font-size: 12px; color: #42b4ff; }
+.account-menu hr { margin: 16px 20px 0; border: 0; border-top: 1px solid #414d5c; }
+.account-foot { display: flex; justify-content: flex-end; gap: 8px; padding: 14px 20px 0; }
+.account-profile { display: inline-flex; align-items: center; height: 34px; padding: 0 18px; border: 2px solid #42b4ff;
+  border-radius: 20px; color: #42b4ff; font-size: 14px; font-weight: 700; }
+.account-profile:hover { background: rgba(66, 180, 255, 0.12); color: #75cfff; border-color: #75cfff; }
+.account-logout { height: 34px; padding: 0 22px; border: 0; border-radius: 20px; background: var(--primary); color: var(--primary-ink);
+  font-size: 14px; font-weight: 700; cursor: pointer; }
+.account-logout:hover { background: var(--primary-hover); }
 .subnav { display: flex; align-items: center; gap: 6px; font-size: 14px; color: var(--ink-2); white-space: nowrap; }
 .subnav .crumb { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
 .subnav .crumb svg { color: var(--ink-3); flex: none; }
@@ -70,6 +94,16 @@
 .menu-btn.on { background: var(--blue); color: #fff; }
 .app-body { display: flex; align-items: flex-start; }
 .app-main { flex: 1; min-width: 0; overflow-x: clip; } /* clip, not hidden: keeps sticky bars working */
+/* AI guide open (styles/guide.css): on wide screens the bar under the logo and the page move right by the
+   panel width, the dark top bar stays across the full width; narrower screens lay the panel over the page */
+@media (min-width: 1100px) {
+  .lp-guide ~ .toolbar, .lp-guide ~ .app-body { margin-left: var(--guide-w); }
+}
+/* in the app the panel's title row is the height of the bar under the logo (42px), so its accent line
+   continues that bar's bottom edge as in the console (the intro page matches its 72px nav instead) */
+.topbar ~ .lp-guide header { height: 42px; padding: 0 8px 0 var(--g-pad); gap: 2px; }
+.topbar ~ .lp-guide header b { font-size: 16px; letter-spacing: -0.2px; }
+.topbar ~ .lp-guide header button { width: 30px; height: 30px; }
 .sidebar { position: sticky; top: calc(var(--bar-h) + 42px); flex: none; width: 260px; height: calc(100vh - var(--bar-h) - 42px); overflow-y: auto;
   background: var(--panel); border-right: 1px solid var(--line); z-index: 15; }
 .side-head { display: flex; align-items: center; justify-content: space-between; padding: 18px 16px 10px 22px; }
@@ -98,5 +132,4 @@
    no longer runs into 로그아웃 (the admin's 계정 관리 · 증빙 관리 is the longest) */
 @media (max-width: 480px) {
   .topnav { display: none; }
-  .topbar .who { flex: none; }
 }

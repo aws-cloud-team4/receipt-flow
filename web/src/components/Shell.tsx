@@ -2,7 +2,9 @@ import { createContext, useContext, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { Link, NavLink } from "react-router-dom";
 import type { Me } from "../api";
+import AccountMenu from "./AccountMenu";
 import { useHelp } from "./Help";
+import GuideChat, { GuideStar } from "./landing/GuideChat";
 import Sidebar, { MenuButton, useSideMenu } from "./Sidebar";
 
 // where a page's breadcrumbs go: the bar under the logo, next to the menu button
@@ -12,27 +14,25 @@ export default function Shell({ me, onLogout, children }: { me: Me; onLogout: ()
   const menu = useSideMenu();
   const help = useHelp();
   const [slot, setSlot] = useState<HTMLElement | null>(null);
+  const [guideOpen, setGuideOpen] = useState(false); // the AI guide, docked on the left like the console's assistant
   return (
     <>
       <header className="topbar">
         <Link to="/" className="brand" aria-label="receiptflow 홈">
           receipt<span>flow</span>
         </Link>
+        <span className="topbar-sep" aria-hidden />
+        <GuideStar open={guideOpen} onClick={() => setGuideOpen((v) => !v)} />
+        <span className="topbar-sep" aria-hidden />
         <nav className="topnav" aria-label="메뉴">
           <NavLink to="/" end>{me.role === "admin" ? "계정 관리" : "홈"}</NavLink>
           {me.role === "admin" ? <NavLink to="/admin/receipts">증빙 관리</NavLink>
             : me.role === "reviewer" ? <NavLink to="/review">검수 목록</NavLink> : <NavLink to="/receipts">내 증빙</NavLink>}
         </nav>
         <div className="spacer" />
-        <Link to="/me" className="who" title="내 프로필">
-          <span className="who-name">{me.name}</span>
-          <span className="who-meta">{[me.position, me.department].filter(Boolean).join(" · ")}</span>
-          <span className="role-tag">{me.role_label}</span>
-        </Link>
-        <button className="link" onClick={onLogout}>
-          로그아웃
-        </button>
+        <AccountMenu me={me} onLogout={onLogout} />
       </header>
+      <GuideChat open={guideOpen} onClose={() => setGuideOpen(false)} />
       <div className="toolbar">
         <MenuButton open={menu.open} onClick={menu.toggle} />
         <div className="crumbs" ref={setSlot} />

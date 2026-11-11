@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 
 /**
- * "receiptflow에 물어보기": a floating chat on the intro page that answers questions about the service
+ * "receiptflow에 물어보기": a chat panel docked on the left, opened from the star in the dark top bar of the
+ * intro page and of the app (`Shell`). It answers questions about the service
  * from the project documents (`POST /guide/ask`, its own pod — not the employees' AI assistant).
  * No login. The server limits questions per visitor and per day and says so in the error message.
  */
