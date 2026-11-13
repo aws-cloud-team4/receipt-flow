@@ -41,7 +41,7 @@ EKS는 2026-10-30부터 계속 켜져 있고, **2026-11-10부터 최종 방식**
 
 **HTTPS:** `deploy.sh` 마지막에 CloudFront(`infra/terraform/edge`)가 새 ALB를 가리키게 바꾸고 **`https://….cloudfront.net` 주소**를 출력합니다. 휴대폰 카메라는 HTTPS에서만 동작하므로 이 주소로 접속합니다(`http://<ALB 주소>`는 확인용). 도메인이 필요 없고 무료 범위입니다. CloudFront는 정리 때 지우지 않아 다음 배포에도 **같은 주소**를 씁니다(클러스터가 없을 때는 502). S3 업로드 허용 주소에 ALB·CloudFront 주소 패턴이 들어 있어 따로 고칠 것이 없습니다.
 
-**자동 배포 (GitHub Actions `deploy`):** 클러스터가 켜져 있는 동안 `main`에 서비스·웹·매니페스트 변경이 머지되면 새 이미지로 롤아웃합니다(클러스터가 없으면 건너뜀). 수동 실행은 Actions → deploy → Run workflow. **팀 저장소는 설정이 끝나 있습니다**(배포 역할 `receipt-flow-dev-github-deploy`, Secret `AWS_DEPLOY_ROLE_ARN`).
+**자동 배포 (GitHub Actions `deploy`):** 클러스터가 켜져 있는 동안 `main`에 서비스·웹·매니페스트 변경이 머지되면 새 이미지로 롤아웃합니다. 안내 챗봇은 이미지에 복사된 문서로 답하므로 md 문서(`README.md`·`AGENTS.md`·`docs/*.md`·`deploy/README.md`)만 바뀐 머지도 배포합니다(클러스터가 없으면 건너뜀). 수동 실행은 Actions → deploy → Run workflow. **팀 저장소는 설정이 끝나 있습니다**(배포 역할 `receipt-flow-dev-github-deploy`, Secret `AWS_DEPLOY_ROLE_ARN`).
 
 - 클러스터를 새로 만들면 `deploy.sh`를 먼저 한 번 실행합니다. ALB 컨트롤러·자동 확장·HTTPS는 Actions가 설치하지 않습니다.
 - 배포 역할의 클러스터 접근 권한은 `eks` 스택이 `admin` 출력에서 읽어 **자동으로** 넣습니다(`admin_principal_arns`에 적지 않음).

@@ -1,5 +1,7 @@
 # Merge to main → new images → rolling update on the EKS cluster, but only while a cluster exists
 # (it stays on until the demo; if it does not exist, this job skips).
+# Docs-only merges deploy too: the intro-page guide chat answers from a copy of the Markdown docs
+# baked into the chat-service image (deploy/copy-guide-docs.sh), so it stays stale until a rebuild.
 # Also runs by hand: Actions → deploy → Run workflow.
 # Needs the repo secret AWS_DEPLOY_ROLE_ARN (infra/terraform/admin output github_deploy_role_arn,
 # created when the admin stack's github_repo is set to this repository). Without it the job skips.
@@ -9,7 +11,16 @@ name: deploy
 on:
   push:
     branches: [main]
-    paths: ["services/**", "web/**", "deploy/k8s/**", "deploy/k8s-scaling/**"]
+    paths:
+      - "services/**"
+      - "web/**"
+      - "deploy/k8s/**"
+      - "deploy/k8s-scaling/**"
+      # docs read by the guide chat (deploy/copy-guide-docs.sh)
+      - "README.md"
+      - "AGENTS.md"
+      - "docs/*.md"
+      - "deploy/README.md"
   workflow_dispatch:
 
 permissions:
