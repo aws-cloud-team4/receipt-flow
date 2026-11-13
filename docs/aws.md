@@ -89,7 +89,7 @@ KEDA는 `provider: aws`, `identityOwner: keda`로 운영자 자신의 자격 증
 ### CI·자동 배포 (`.github/workflows/`)
 
 - `ci.yml` — PR 필수 검사 5종: **services**(ruff format·check, pytest), **web**(검수 정렬·분석 시간·보완 사유 회귀 검사 + build), **terraform**(fmt, 스택 6개 validate), **images**(배포 이미지 5개 빌드 — 서비스 4개 + 웹(Cognito 기본값), 이미지마다 따로 돌아 GitHub에는 `images (api-service)` 등 5개로 표시), **manifests**(`deploy/k8s` kustomize 렌더링 → kubeconform 스키마 검사(KEDA 객체는 형식만), 배포 설정이 `RF_AUTH_MODE: cognito`·`RF_AI_MODE: bedrock`이고 `RF_DEV_LOGIN`이 없는지 확인 — 배포에는 관리자가 빠진 `RF_DEMO_LOGIN`만 허용). 그래서 `main` 보호의 필수 체크는 9개입니다.
-- `deploy.yml` — `main` 머지(서비스·웹·매니페스트 변경) 또는 수동 실행 → **클러스터가 켜져 있으면** 이미지 빌드·ECR → 롤아웃, 없으면 건너뜀. 배포 역할(`admin` 스택 `github.tf`)·Secret `AWS_DEPLOY_ROLE_ARN`·클러스터 접근 권한은 설정돼 있습니다 — 주의할 점은 [deploy/README.md](../deploy/README.md#1-배포).
+- `deploy.yml` — `main` 머지(서비스·웹·매니페스트 변경, 그리고 안내 챗봇이 읽는 md 문서 변경 — `README.md`·`AGENTS.md`·`docs/*.md`·`deploy/README.md`) 또는 수동 실행 → **클러스터가 켜져 있으면** 이미지 빌드·ECR → 롤아웃, 없으면 건너뜀. 배포 역할(`admin` 스택 `github.tf`)·Secret `AWS_DEPLOY_ROLE_ARN`·클러스터 접근 권한은 설정돼 있습니다 — 주의할 점은 [deploy/README.md](../deploy/README.md#1-배포).
 
 ## 비용
 
