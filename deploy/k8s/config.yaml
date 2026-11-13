@@ -10,9 +10,10 @@ data:
   RF_BUCKET: receipt-flow-dev-receipts-431777499129
   RF_QUEUE_URL: https://sqs.ap-northeast-2.amazonaws.com/431777499129/receipt-flow-dev-analysis
   RF_AUTH_MODE: cognito
-  # Demo login (employee/reviewer test accounts without a password, never admin) is OFF: anyone with
-  # the URL could sign in and see every receipt as a reviewer. To turn it on for a demo, add
-  # RF_DEMO_LOGIN: "true" here and redeploy.
+  # Demo: the login page offers the employee/reviewer test accounts (never the admin one).
+  # Anyone with the URL can sign in without a password and, as a reviewer, see every receipt.
+  # To turn it off, delete this line and redeploy.
+  RF_DEMO_LOGIN: "true"
   RF_COGNITO_POOL_ID: ap-northeast-2_mPFYFe46d
   RF_COGNITO_CLIENT_ID: 210f24t3pn5t0ac06phdatomed
   RF_AI_MODE: bedrock
