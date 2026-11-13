@@ -83,7 +83,7 @@ KEDA는 `provider: aws`, `identityOwner: keda`로 운영자 자신의 자격 증
 
 - `deploy.sh` 순서: kubeconfig → AWS Load Balancer Controller(Helm) → (최종) KEDA·Cluster Autoscaler → 이미지 5개 빌드·ECR 업로드(태그 = 커밋) → `kubectl apply -k deploy/k8s` (+ `deploy/k8s-scaling`) → ALB 주소 대기 → CloudFront를 새 ALB로 → **https 주소 출력**. 다시 실행해도 됩니다(제자리 갱신).
 - 매니페스트: `deploy/k8s/` (kustomize). 설정은 `config.yaml`(ConfigMap, 비밀값 없음 — 권한은 Pod Identity), 서비스마다 Deployment·Service·(HPA), `ingress.yaml`(ALB 하나, `/api` `/chat` `/preprocess` `/`).
-- **배포의 개발자 로그인은 시연용 `RF_DEMO_LOGIN`만** (`deploy/k8s/config.yaml`) → 직원·검수 담당자 테스트 계정 9개만 나오고 관리자 테스트 계정은 거부됩니다. 끄려면 이 줄을 지우고 다시 배포합니다(`/api/dev/profiles` 404). 관리자까지 되는 `RF_DEV_LOGIN`은 CI `manifests` 검사가 막습니다.
+- **배포의 개발자 로그인은 지금 꺼져 있습니다** (`deploy/k8s/config.yaml`에 `RF_DEMO_LOGIN` 없음 → `/api/dev/profiles` 404, 로그인 화면에 "개발자 모드" 없음). 주소를 아는 누구나 비밀번호 없이 검수 담당자로 들어와 모든 증빙을 볼 수 있기 때문입니다. 시연에 필요하면 그 파일에 `RF_DEMO_LOGIN: "true"`를 넣고 다시 배포합니다 — 직원·검수 담당자 테스트 계정 9개만 나오고 관리자 테스트 계정은 거부됩니다. 관리자까지 되는 `RF_DEV_LOGIN`은 CI `manifests` 검사가 막습니다.
 - 로컬·EKS 워커는 같은 공용 큐를 소비합니다 — 분석 코드·모델 버전 맞추기는 [worker.md](worker.md).
 
 ### CI·자동 배포 (`.github/workflows/`)
